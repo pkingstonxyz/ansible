@@ -317,9 +317,10 @@ def main():
 
     n0 = n1 = None
     for i, line in enumerate(lines):
-        if line == marker0:
+        # Ignore line endings when finding markers
+        if line.rstrip() == marker0.rstrip():
             n0 = i
-        if line == marker1:
+        if line.rstrip() == marker1.rstrip():
             n1 = i
 
     if None in (n0, n1):
@@ -383,7 +384,8 @@ def main():
     if module._diff:
         diff['after'] = result
 
-    if original == result:
+    # Ignore line-ending differences when detecting change
+    if original is not None and [line for line in original.splitlines()] == [line for line in result.splitlines()]:
         msg = ''
         changed = False
     elif original is None:
