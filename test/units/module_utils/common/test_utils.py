@@ -57,6 +57,6 @@ class TestGetAllSubclasses:
                                                           self.BranchIIA, self.BranchIIB])
 
     def test_multiple_inheritance(self) -> None:
-        assert set(get_all_subclasses(self.MultipleInheritanceBase)) == set([self.MultipleInheritanceBranchI,
-                                                                             self.MultipleInheritanceBranchII,
-                                                                             self.MultipleInheritanceChild])
+        assert get_all_subclasses(self.MultipleInheritanceBase) == {self.MultipleInheritanceBranchI,
+                                                                    self.MultipleInheritanceBranchII,
+                                                                    self.MultipleInheritanceChild}
