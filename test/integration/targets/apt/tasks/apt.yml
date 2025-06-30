@@ -619,3 +619,47 @@
       - not srcpkgcache_bin.stat.exists
     fail_msg: "apt cache files still exist."
     success_msg: "apt cache files are cleaned."
+
+# Test PolicyRcD
+- name: Create policy-rc.db file
+  become: true
+  copy:
+    dest: /usr/sbin/policy-rc.d
+    content: |
+      #!/bin/sh
+      exit 0
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Capture the checksum of policy-rc.d
+  stat:
+    path: /usr/sbin/policy-rc.d
+  register: policy_rc_before
+
+- name: Perform an apt install to trigger policy-rc.d handling
+  apt:
+    name: hello
+    state: present
+    policy_rc_d: 101
+  ignore_errors: true
+
+- name: Capture the checksum of policy-rc.d afterwards
+  stat:
+    path: /usr/sbin/policy-rc.d
+  register: policy_rc_after
+
+- name: Assert that policy-rc.d is the same before and after
+  assert:
+    that:
+      - policy_rc_before.stat.checksum == policy_rc_after.stat.checksum
+
+- name: Clean up hello package
+  apt:
+    name: hello
+    state: absent
+
+- name: Remove /usr/sbin/policy-rc.d
+  file:
+    path: /usr/sbin/policy-rc.d
+    state: absent
