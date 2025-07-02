@@ -663,3 +663,55 @@
   file:
     path: /usr/sbin/policy-rc.d
     state: absent
+
+# get_cache failure
+- name: Install hello to ensure cache is initialized
+  apt:
+    pkg: hello
+    state: present
+
+- name: Create faulty apt.conf.d file
+  copy:
+    content: |
+      Dir::Cache::archives "/dev/full";
+      Dir::Cache "/dev/full";
+      Dir::Cache::srcpkgcache "/dev/full";
+      Dir::Cache::pkgcache "/dev/full";
+    dest: /etc/apt/apt.conf.d/99broken
+
+- name: Apt update to trigger cache failure
+  apt:
+    update_cache: true
+  ignore_errors: true
+
+#- name: Re-config to force get_config retries
+#  copy:
+#    content: |
+#      Dir::Cache::srcpkgcache "/var/lib/apt/lists/foo";
+#      Dir::Cache::pkgcache "/var/lib/apt/lists/foo";
+#      Dir::Cache "/dev/full";
+#      Dir::Cache::archives "/dev/full";
+#    dest: /etc/apt/apt.conf.d/99broken
+- name: Remove /var/lib/apt/lists/*
+  become: true
+  command: rm -rf /var/lib/apt/lists/*
+
+- name: Apt update to enter retries
+  apt:
+    update_cache: true
+  ignore_errors: true
+
+- name: Remove buggy configuration file
+  file:
+    path: /etc/apt/apt.conf.d/99broken
+    state: absent
+
+- name: Apt update and clean
+  apt:
+    clean: true
+    update_cache: true
+
+- name: Remove hello
+  apt:
+    pkg: hello
+    state: absent
