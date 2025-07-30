@@ -199,8 +199,8 @@ class ConnectionProcess(object):
             finally:
                 if os.path.exists(self.socket_path):
                     os.remove(self.socket_path)
-                    setattr(self.connection, '_socket_path', None)
-                    setattr(self.connection, '_connected', False)
+                    self.connection._socket_path = None
+                    self.connection._connected = False
 
         if os.path.exists(lock_path):
             os.remove(lock_path)

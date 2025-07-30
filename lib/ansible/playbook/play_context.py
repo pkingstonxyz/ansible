@@ -241,7 +241,7 @@ class PlayContext(Base):
             # setup shell
             for exe_var in C.MAGIC_VARIABLE_MAPPING.get('executable'):
                 if exe_var in variables:
-                    setattr(new_info, 'executable', variables.get(exe_var))
+                    new_info.executable = variables.get(exe_var)
 
         attrs_considered = []
         for (attr, variable_names) in C.MAGIC_VARIABLE_MAPPING.items():
@@ -280,9 +280,9 @@ class PlayContext(Base):
                 remote_addr_local = new_info.remote_addr in C.LOCALHOST
                 inv_hostname_local = delegated_vars.get('inventory_hostname') in C.LOCALHOST
                 if remote_addr_local and inv_hostname_local:
-                    setattr(new_info, 'connection', 'local')
+                    new_info.connection = 'local'
                 elif getattr(new_info, 'connection', None) == 'local' and (not remote_addr_local or not inv_hostname_local):
-                    setattr(new_info, 'connection', C.DEFAULT_TRANSPORT)
+                    new_info.connection = C.DEFAULT_TRANSPORT
 
         # we store original in 'connection_user' for use of network/other modules that fallback to it as login user
         # connection_user to be deprecated once connection=local is removed for, as local resets remote_user

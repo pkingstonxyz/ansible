@@ -133,7 +133,7 @@ class PlaybookExecutor:
                     # Allow variables to be used in vars_prompt fields.
                     all_vars = self._variable_manager.get_vars(play=play)
                     templar = TemplateEngine(loader=self._loader, variables=all_vars)
-                    setattr(play, 'vars_prompt', templar.template(play.vars_prompt))
+                    play.vars_prompt = templar.template(play.vars_prompt)
 
                     # FIXME: this should be a play 'sub object' like loop_control
                     if play.vars_prompt:

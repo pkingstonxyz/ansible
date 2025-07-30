@@ -692,7 +692,7 @@ class Role(Base, Conditional, Taggable, CollectionSearch, Delegatable):
                 r = Role()
                 r.deserialize(dep)
                 deps.append(r)
-            setattr(self, '_dependencies', deps)
+            self._dependencies = deps
 
         parent_data = data.get('_parents', [])
         parents = []
@@ -700,7 +700,7 @@ class Role(Base, Conditional, Taggable, CollectionSearch, Delegatable):
             r = Role()
             r.deserialize(parent, include_deps=False)
             parents.append(r)
-        setattr(self, '_parents', parents)
+        self._parents = parents
 
         metadata_data = data.get('_metadata')
         if metadata_data:

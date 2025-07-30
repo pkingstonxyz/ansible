@@ -116,7 +116,7 @@ def get_shell_plugin(shell_type=None, executable=None):
         raise AnsibleError("Could not find the shell plugin required (%s)." % shell_type)
 
     if executable:
-        setattr(shell, 'executable', executable)
+        shell.executable = executable
 
     return shell
 

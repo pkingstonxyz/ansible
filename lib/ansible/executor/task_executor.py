@@ -1160,7 +1160,7 @@ class TaskExecutor:
                 options = self._connection.get_options()
                 socket_path = start_connection(self._play_context, options, self._task._uuid)
                 display.vvvv('local domain socket path is %s' % socket_path, host=self._play_context.remote_addr)
-                setattr(self._connection, '_socket_path', socket_path)
+                self._connection._socket_path = socket_path
             else:
                 # TODO: set self._connection to dummy/noop connection, using local for now
                 self._connection = self._get_connection({}, templar, 'local')

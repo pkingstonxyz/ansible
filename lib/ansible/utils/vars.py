@@ -232,7 +232,7 @@ def load_options_vars(version):
             if opt is not None:
                 options_vars['ansible_%s' % alias] = opt
 
-        setattr(load_options_vars, 'options_vars', options_vars)
+        load_options_vars.options_vars = options_vars
 
     return load_options_vars.options_vars
 

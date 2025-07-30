@@ -114,5 +114,5 @@ class RoleMetadata(Base, CollectionSearch):
         )
 
     def deserialize(self, data):
-        setattr(self, 'allow_duplicates', data.get('allow_duplicates', False))
-        setattr(self, 'dependencies', data.get('dependencies', []))
+        self.allow_duplicates = data.get('allow_duplicates', False)
+        self.dependencies = data.get('dependencies', [])

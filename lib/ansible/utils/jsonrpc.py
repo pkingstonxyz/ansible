@@ -29,7 +29,7 @@ class JsonRpcServer(object):
             return json.dumps(error)
 
         args, kwargs = request.get('params')
-        setattr(self, '_identifier', request.get('id'))
+        self._identifier = request.get('id')
 
         rpc_method = None
         for obj in self._objects:

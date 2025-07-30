@@ -149,7 +149,7 @@ class FieldAttributeBase:
             raise AnsibleAssertionError('ds (%s) should not be None but it is.' % ds)
 
         # cache the datastructure internally
-        setattr(self, '_ds', ds)
+        self._ds = ds
 
         # the variable manager class is used to manage and merge variables
         # down to a single dictionary for reference in templating, etc.
@@ -725,7 +725,7 @@ class FieldAttributeBase:
                 self.set_to_context(name)
 
         # restore the UUID field
-        setattr(self, '_uuid', data.get('uuid'))
+        self._uuid = data.get('uuid')
         self._finalized = data.get('finalized', False)
         self._squashed = data.get('squashed', False)
 

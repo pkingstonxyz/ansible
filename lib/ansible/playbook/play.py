@@ -427,7 +427,7 @@ class Play(Base, Taggable, CollectionSearch):
                 r.deserialize(role)
                 roles.append(r)
 
-            setattr(self, 'roles', roles)
+            self.roles = roles
             del data['roles']
 
     def copy(self):

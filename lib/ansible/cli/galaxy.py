@@ -608,9 +608,9 @@ class GalaxyCLI(CLI):
         options = super(GalaxyCLI, self).post_process_args(options)
 
         # ensure we have 'usable' cli option
-        setattr(options, 'validate_certs', (None if options.ignore_certs is None else not options.ignore_certs))
+        options.validate_certs = (None if options.ignore_certs is None else not options.ignore_certs)
         # the default if validate_certs is None
-        setattr(options, 'resolved_validate_certs', (options.validate_certs if options.validate_certs is not None else not C.GALAXY_IGNORE_CERTS))
+        options.resolved_validate_certs = (options.validate_certs if options.validate_certs is not None else not C.GALAXY_IGNORE_CERTS)
 
         display.verbosity = options.verbosity
         return options
