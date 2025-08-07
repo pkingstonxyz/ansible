@@ -550,7 +550,7 @@ def main():
             try:
                 (pre_existing_dir, new_directory_list) = split_pre_existing_dir(dirname)
             except AnsibleModuleError as e:
-                e.result['msg'] += ' Could not copy to {0}'.format(dest)
+                e.results['msg'] += ' Could not copy to {0}'.format(dest)
                 module.fail_json(**e.results)
 
             if module.check_mode:
