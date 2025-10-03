@@ -120,8 +120,6 @@ class TaskExecutor:
                                 res['failed'] = True
                                 res['msg'] = 'One or more items failed'
                                 self._task.ignore_errors = item_ignore
-                            elif self._task.ignore_errors and not item_ignore:
-                                self._task.ignore_errors = item_ignore
                         if 'unreachable' in item and item['unreachable']:
                             item_ignore_unreachable = item.pop('_ansible_ignore_unreachable')
                             if not res.get('unreachable'):
