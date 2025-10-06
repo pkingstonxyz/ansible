@@ -408,4 +408,3 @@
   assert:
     that:
       - loop_on_dict is failed
-      -
