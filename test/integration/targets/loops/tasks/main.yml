@@ -392,3 +392,20 @@
   assert:
     that:
       - "r['results'][1]['msg'] is contains(\"no attribute 'stdout'\")"
+
+- name: Test that it fails when the loop is a dict
+  vars:
+    foo: bar
+  debug:
+    var: foo
+  loop:
+    this: is
+    a: dict
+  ignore_errors: true
+  register: loop_on_dict
+
+- name: Assert that it fails when the loop is a dict
+  assert:
+    that:
+      - loop_on_dict is failed
+      -
