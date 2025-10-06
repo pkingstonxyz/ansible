@@ -290,13 +290,9 @@ class TaskExecutor:
             else:
                 ran_once = True
 
-            try:
-                tmp_task: Task = self._task.copy(exclude_parent=True, exclude_tasks=True)
-                tmp_task._parent = self._task._parent
-                tmp_play_context = self._play_context.copy()
-            except AnsibleParserError as e:
-                results.append(dict(failed=True, msg=to_text(e)))
-                continue
+            tmp_task: Task = self._task.copy(exclude_parent=True, exclude_tasks=True)
+            tmp_task._parent = self._task._parent
+            tmp_play_context = self._play_context.copy()
 
             # now we swap the internal task and play context with their copies,
             # execute, and swap them back so we can do the next iteration cleanly
