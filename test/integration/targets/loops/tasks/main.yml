@@ -408,3 +408,16 @@
   assert:
     that:
       - loop_on_dict is failed
+
+- name: Exercise check that loop-error takes precedence over conditional error
+  debug:
+    msg: "loop"
+  when: "{{ unresolvable_var }}"
+  with_list: "{{ fake_var }}"
+  register: result
+  ignore_errors: true
+
+- name: Assert failure
+  assert:
+    that: result is failed
+
