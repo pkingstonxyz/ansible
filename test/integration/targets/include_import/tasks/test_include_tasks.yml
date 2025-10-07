@@ -49,3 +49,13 @@
       loop_control:
         loop_var: should_show_up_loop
         index_var: should_show_up_index
+
+    - name: Test empty file failure on include_tasks
+      include_tasks:
+        file: "{{ None }}"
+      ignore_errors: true
+      register: fail_when_file_is_none
+
+    - name: Assert failure on none file
+      assert:
+        that: fail_when_file_is_none is failed
