@@ -18,3 +18,14 @@
   loop_control:
     loop_var: become_test_config
     label: "{{ become_test }}"
+
+- name: Become with an invalid plugin outside of the last task's ansible_become context
+  become: true
+  become_method: this.become.method.does.not.exist
+  shell: echo hello
+  ignore_errors: true
+  register: invalid_become_method
+
+- name: Assert failure on invalid become method
+  assert:
+    that: invalid_become_method is failed
