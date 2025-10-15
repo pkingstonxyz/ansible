@@ -16,6 +16,10 @@ import typing as t
 import venv
 
 
+SCRIPTS_DIR = pathlib.Path(__file__).parent.resolve()
+DEPS_DIR = SCRIPTS_DIR / 'dependencies'
+
+
 @dataclasses.dataclass(frozen=True)
 class CoverageFile:
     name: str
@@ -50,8 +54,9 @@ def run(*args: str | pathlib.Path) -> None:
 
 
 def install_codecov(dest: pathlib.Path) -> pathlib.Path:
-    package = 'codecov-cli'
-    version = '11.0.3'
+    """Populate a transitively pinned venv with ``codecov-cli``."""
+    requirement_file = DEPS_DIR / 'codecov.in'
+    constraint_file = requirement_file.with_suffix('.txt')
 
     venv_dir = dest / 'venv'
     python_bin = venv_dir / 'bin' / 'python'
@@ -59,7 +64,15 @@ def install_codecov(dest: pathlib.Path) -> pathlib.Path:
 
     venv.create(venv_dir, with_pip=True)
 
-    run(python_bin, '-m', 'pip', 'install', f'{package}=={version}', '--disable-pip-version-check')
+    run(
+        python_bin,
+        '-m',
+        'pip',
+        'install',
+        f'--constraint={constraint_file!s}',
+        f'--requirement={requirement_file!s}',
+        '--disable-pip-version-check',
+    )
 
     return codecov_bin
 
@@ -105,16 +118,40 @@ def upload_files(codecov_bin: pathlib.Path, config_file: pathlib.Path, files: t.
         run(*cmd)
 
 
+def report_upload_completion(
+    codecov_bin: pathlib.Path,
+    config_file: pathlib.Path,
+    dry_run: bool = False,
+) -> None:
+    """Notify Codecov backend that all reports we wanted are in."""
+    cmd = [
+        codecov_bin,
+        '--disable-telem',
+        f'--codecov-yml-path={config_file}',
+        'send-notifications',
+    ]
+
+    if dry_run:
+        cmd.append('--dry-run')
+
+    run(*cmd)
+
+
 def main() -> None:
     args = parse_args()
 
     with tempfile.TemporaryDirectory(prefix='codecov-') as tmpdir:
         config_file = pathlib.Path(tmpdir) / 'config.yml'
-        config_file.write_text('')
+        # Refs:
+        # * https://docs.codecov.com/docs/codecovyml-reference#codecovnotifymanual_trigger
+        # * https://docs.codecov.com/docs/notifications#preventing-notifications-until-youre-ready-to-send-notifications
+        config_file.write_text('codecov:\n  notify:\n    manual_trigger: true')
 
         codecov_bin = install_codecov(pathlib.Path(tmpdir))
         files = process_files(args.path)
         upload_files(codecov_bin, config_file, files, args.dry_run)
+        # Ref: https://docs.codecov.com/docs/cli-options#send-notifications
+        report_upload_completion(codecov_bin, config_file, args.dry_run)
 
 
 if __name__ == '__main__':

@@ -89,53 +89,6 @@ class TestBase(unittest.TestCase):
         copy = b.copy()
         self._assert_copy(b, copy)
 
-    def test_serialize(self):
-        ds = {}
-        ds = {'environment': [],
-              'vars': self.assorted_vars
-              }
-        b = self._base_validate(ds)
-        ret = b.serialize()
-        self.assertIsInstance(ret, dict)
-
-    def test_deserialize(self):
-        data = {}
-
-        d = self.ClassUnderTest()
-        d.deserialize(data)
-        self.assertIn('_run_once', d.__dict__)
-        self.assertIn('_check_mode', d.__dict__)
-
-        data = {'no_log': False,
-                'remote_user': None,
-                'vars': self.assorted_vars,
-                'environment': [],
-                'run_once': False,
-                'connection': None,
-                'ignore_errors': False,
-                'port': 22,
-                'a_sentinel_with_an_unlikely_name': ['sure, a list']}
-
-        d = self.ClassUnderTest()
-        d.deserialize(data)
-        self.assertNotIn('_a_sentinel_with_an_unlikely_name', d.__dict__)
-        self.assertIn('_run_once', d.__dict__)
-        self.assertIn('_check_mode', d.__dict__)
-
-    def test_serialize_then_deserialize(self):
-        ds = {'environment': [],
-              'vars': self.assorted_vars}
-        b = self._base_validate(ds)
-        copy = b.copy()
-        ret = b.serialize()
-        b.deserialize(ret)
-        c = self.ClassUnderTest()
-        c.deserialize(ret)
-        # TODO: not a great test, but coverage...
-        self.maxDiff = None
-        self.assertDictEqual(b.serialize(), copy.serialize())
-        self.assertDictEqual(c.serialize(), copy.serialize())
-
     def test_post_validate_empty(self):
         fake_loader = DictDataLoader({})
         templar = TemplateEngine(loader=fake_loader)
@@ -175,14 +128,6 @@ class TestBase(unittest.TestCase):
               'port': 'some_port'}
         b = self._base_validate(ds)
         self.assertEqual(b.port, 'some_port')
-
-    def test_squash(self):
-        data = self.b.serialize()
-        self.b.squash()
-        squashed_data = self.b.serialize()
-        # TODO: assert something
-        self.assertFalse(data['squashed'])
-        self.assertTrue(squashed_data['squashed'])
 
     def test_vars(self):
         # vars as a dict.
@@ -332,6 +277,7 @@ class BaseSubClass(base.Base):
     test_attr_int = FieldAttribute(isa='int', always_post_validate=True)
     test_attr_float = FieldAttribute(isa='float', default=3.14159, always_post_validate=True)
     test_attr_list = FieldAttribute(isa='list', listof=(str,), always_post_validate=True)
+    test_attr_mixed_list = FieldAttribute(isa='list', listof=(str, int), always_post_validate=True)
     test_attr_list_no_listof = FieldAttribute(isa='list', always_post_validate=True)
     test_attr_list_required = FieldAttribute(isa='list', listof=(str,), required=True,
                                              default=list, always_post_validate=True)
@@ -517,6 +463,16 @@ class TestBaseSubClass(TestBase):
         ds = {'test_attr_list': string_list}
         bsc = self._base_validate(ds)
         self.assertEqual(string_list, bsc._test_attr_list)
+
+    def test_attr_mixed_list(self):
+        mixed_list = ['foo', 1]
+        ds = {'test_attr_mixed_list': mixed_list}
+        bsc = self._base_validate(ds)
+        self.assertEqual(mixed_list, bsc._test_attr_mixed_list)
+
+    def test_attr_mixed_list_invalid(self):
+        ds = {'test_attr_mixed_list': [['foo'], 1]}
+        self.assertRaises(AnsibleParserError, self._base_validate, ds)
 
     def test_attr_list_none(self):
         ds = {'test_attr_list': None}

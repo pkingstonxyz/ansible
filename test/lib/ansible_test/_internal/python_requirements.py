@@ -170,11 +170,11 @@ def install_requirements(
 
     from .host_profiles import DebuggableProfile
 
-    if isinstance(host_profile, DebuggableProfile) and host_profile.debugging_enabled and args.metadata.debugger_settings.package:
+    if isinstance(host_profile, DebuggableProfile) and host_profile.debugger and host_profile.debugger.get_python_package():
         commands.append(PipInstall(
             requirements=[],
             constraints=[],
-            packages=[args.metadata.debugger_settings.package],
+            packages=[host_profile.debugger.get_python_package()],
         ))
 
     if not commands:
@@ -433,7 +433,7 @@ def get_venv_packages(python: PythonConfig) -> dict[str, str]:
     #       See: https://github.com/ansible/base-test-container/blob/main/files/installer.py
 
     default_packages = dict(
-        pip='24.2',
+        pip='25.2',
     )
 
     override_packages: dict[str, dict[str, str]] = {
