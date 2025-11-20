@@ -2,14 +2,6 @@
 # Copyright: (c) 2017, James Tanner <tanner.jc@gmail.com>
 # GNU General Public License v3.0+ (see COPYING or https://www.gnu.org/licenses/gpl-3.0.txt)
 
-- name: Determine if selinux is enabled
-  command: getenforce
-  register: selinux_status
-  changed_when: false
-  failed_when: false
-
-- import_tasks: test_selinux.yml
-  when: selinux_status.stdout == "Enforcing"
 - import_tasks: test_create_user.yml
 - import_tasks: test_create_system_user.yml
 - import_tasks: test_create_user_uid.yml
@@ -42,3 +34,12 @@
     - ansible_facts.system == 'Linux'
     - ansible_distribution != 'Alpine'
 - import_tasks: ssh_keygen.yml
+
+- name: Determine if selinux is enabled
+  command: getenforce
+  register: selinux_status
+  changed_when: false
+  failed_when: false
+
+- import_tasks: test_selinux.yml
+  when: selinux_status.stdout == "Enforcing"
