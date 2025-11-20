@@ -511,6 +511,12 @@ from ansible.module_utils.basic import AnsibleModule
 from ansible.module_utils.common.locale import get_best_parsable_locale
 from ansible.module_utils.common.sys_info import get_platform_subclass
 
+try:
+    from ansible.module_utils.compat import selinux
+    HAS_SELINUX = True
+except ImportError:
+    HAS_SELINUX = False
+
 
 class StructSpwdType(ctypes.Structure):
     _fields_ = [
@@ -703,6 +709,8 @@ class User(object):
             command_name = 'userdel'
 
         cmd = [self.module.get_bin_path(command_name, True)]
+        if HAS_SELINUX and selinux.is_selinux_enabled() and not self.local:
+            cmd.append('-Z')
         if self.force and not self.local:
             cmd.append('-f')
         if self.remove:
