@@ -1,0 +1,57 @@
+- name: check noop on uid_min and uid_max
+  vars:
+    uid_bounds_user: uidbounded
+    uid_bounds_second_user: uidboundedagain
+    occupying_user: uid_occupied
+    uid_bound: 2323
+    umask_user: umasked
+  block:
+    - name: check if uid already in use
+      shell: getent passwd {{ uid_bound }}
+      register: uid_in_use_check
+      ignore_errors: true
+
+    - name: Create user occupying UID bounds
+      when: uid_in_use_check.rc == 2  # uid not in use
+      user:
+        name: "{{ occupying_user }}"
+        uid: "{{ uid_bound }}"
+
+    - name: create user with uid_min and uid_max in a range of 1
+      user:
+        name: "{{ uid_bounds_user }}"
+        uid_min: "{{ uid_bound }}"
+        uid_max: "{{ uid_bound }}"
+      register: first_uid_bounded_user
+
+    - name: create user with the same uid_min and uid_max and ensure it doesn't fail
+      user:
+        name: "{{ uid_bounds_second_user }}"
+        uid_min: "{{ uid_bound }}"
+        uid_max: "{{ uid_bound }}"
+      register: second_uid_bounded_user
+
+    - name: check uid_min and uid_max were ignored
+      assert:
+        that:
+          - first_uid_bounded_user is not failed
+          - second_uid_bounded_user is not failed
+          - first_uid_bounded_user.uid != uid_bound
+          - second_uid_bounded_user.uid != uid_bound
+          - first_uid_bounded_user.uid != second_uid_bounded_user.uid
+
+    - name: clean up users
+      user:
+        name: "{{ item }}"
+        state: absent
+      loop:
+        - "{{ uid_bounds_user }}"
+        - "{{ uid_bounds_second_user }}"
+        - "{{ occupying_user }}"
+
+- name: check noop on uid_
+  block:
+    - name: create user with home dir umask
+      ping:
+    - name: assert noop
+      ping:
