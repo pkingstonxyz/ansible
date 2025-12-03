@@ -132,8 +132,10 @@ class DataLoader:
             return copy.deepcopy(parsed_data)
 
     def path_exists(self, path: str) -> bool:
-        path = self.path_dwim(path)
-        return os.path.exists(path)
+        path = pathlib.Path(self.path_dwim(path))
+        if path.exists(follow_symlinks=False) and not path.exists():
+            raise AnsibleFileNotFound(f'{path} points to a broken symlink.', file_name=path.name)
+        return path.exists()
 
     def is_file(self, path: str) -> bool:
         path = self.path_dwim(path)
