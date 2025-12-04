@@ -28,7 +28,7 @@ from ansible.utils.color import colorize, hostcolor
 from ansible.utils.fqcn import add_internal_fqcns
 
 
-class CallbackModule(CallbackBase):
+class _CallbackModule(CallbackBase):
 
     """
     This is the default callback interface, which simply prints messages
@@ -45,7 +45,7 @@ class CallbackModule(CallbackBase):
         self._last_task_banner = None
         self._last_task_name = None
         self._task_type_cache = {}
-        super(CallbackModule, self).__init__()
+        super(_CallbackModule, self).__init__()
 
     def v2_runner_on_failed(self, result: CallbackTaskResult, ignore_errors: bool = False) -> None:
         host_label = self.host_label(result)
@@ -410,3 +410,24 @@ class CallbackModule(CallbackBase):
     def v2_playbook_on_notify(self, handler, host):
         if self._display.verbosity > 1:
             self._display.display("NOTIFIED HANDLER %s for %s" % (handler.get_name(), host), color=C.COLOR_VERBOSE, screen_only=True)
+
+class CallbackModule(_CallbackModule):
+    # Bad and monkey patched, but it fixes the issue
+    def __init__(self):
+        super(CallbackModule, self).__init__()
+        self._buffered_warnings = []
+        self._original_warning_method = self._display.warning
+        self._display.warning = self._buffer_warning
+
+    def _buffer_warning(self, msg, *args, **kwargs):
+        self._buffered_warnings.append((msg, args, kwargs))
+
+    def v2_playbook_on_play_start(self, playbook):
+        super(CallbackModule, self).v2_playbook_on_play_start(playbook)
+
+        if self._buffered_warnings:
+            for msg, args, kwargs in self._buffered_warnings:
+                self._original_warning_method(msg, *args, **kwargs)
+            self._buffered_warnings = []
+
+
