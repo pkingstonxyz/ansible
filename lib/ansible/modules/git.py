@@ -700,13 +700,13 @@ def get_remote_head(git_path, module, dest, version, remote, bare):
     elif is_remote_tag(git_path, module, dest, remote, version):
         tag = True
         cmd = '%s ls-remote %s -t refs/tags/%s*' % (git_path, remote, version)
-    elif looks_like_hexadecimal_string(version):
-        # appears to be a sha1 (it might not be, but it wasn't found to be a version, branch, or tag)
+    else:
+        # appears to be a sha1.  return as-is since it appears
+        # cannot check for a specific sha1 on remote
         if module.check_mode:
             module.warn(f"version: {version} appears to be a sha hash. Check mode may not behave as expected.")
-        return version  # return as-is because we can't check for a specific sha1 on remote
-    else:
-        module.fail_json(f"Could not determine what version: {version} was, or {version} does not exist on remote.")
+        return version
+
     (rc, out, err) = module.run_command(cmd, check_rc=True, cwd=cwd)
     if len(out) < 1:
         module.fail_json(msg="Could not determine remote revision for %s" % version, stdout=out, stderr=err, rc=rc)
@@ -787,14 +787,6 @@ def is_not_a_branch(git_path, module, dest):
         if branch.startswith('* ') and ('no branch' in branch or 'detached from' in branch or 'detached at' in branch):
             return True
     return False
-
-
-def looks_like_hexadecimal_string(version: str) -> bool:
-    matches_hexadecimal_characters = re.match(r"^[a-fA-F0-9]*$", version)
-    if matches_hexadecimal_characters:
-        return True
-    else:
-        return False
 
 
 def get_repo_path(dest, bare):

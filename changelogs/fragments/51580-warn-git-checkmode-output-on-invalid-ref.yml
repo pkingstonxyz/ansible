@@ -1,0 +1,2 @@
+bugfixes:
+  - git - Issue a warning when the supplied ``version`` parameter is an invalid ref when running the ``git`` module with ``check_mode``. (https://github.com/ansible/ansible/issues/51580)
