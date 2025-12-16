@@ -26,6 +26,8 @@
   - import_tasks: setup.yml
   - import_tasks: setup-local-repos.yml
 
+  - import_tasks: invalid-tag.yml
+
   - import_tasks: formats.yml
   - import_tasks: missing_hostkey.yml
   - import_tasks: missing_hostkey_acceptnew.yml
@@ -46,7 +48,6 @@
   - import_tasks: archive.yml
   - import_tasks: separate-git-dir.yml
   - import_tasks: forcefully-fetch-tag.yml
-  - import_tasks: invalid-tag.yml
   environment:
     HOME: >-
       {{ remote_tmp_dir }}
