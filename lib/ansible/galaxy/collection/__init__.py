@@ -221,6 +221,11 @@ def verify_local_collection(local_collection, remote_collection, artifacts_manag
         format(path=to_text(local_collection.src)),
     )
 
+    parent_dir, child_dir = local_collection.fqcn.split(".", 1)  # should be the name of parent dir and child dir
+    local_collection_path = pathlib.Path(str(local_collection.src))  # using a path to try and be plaform agnostic
+    if local_collection_path.parts[-2] == parent_dir and local_collection_path.parts[-1] == child_dir:
+        display.warning(f"Collection fqcn '{local_collection.fqcn}' does not appear to be in a properly named directory '{local_collection.src}'")
+
     modified_content = []  # type: list[ModifiedContent]
 
     verify_local_only = remote_collection is None
