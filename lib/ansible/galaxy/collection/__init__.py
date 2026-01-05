@@ -221,10 +221,11 @@ def verify_local_collection(local_collection, remote_collection, artifacts_manag
         format(path=to_text(local_collection.src)),
     )
 
-    parent_dir, child_dir = local_collection.fqcn.split(".", 1)  # should be the name of parent dir and child dir
-    local_collection_path = pathlib.Path(str(local_collection.src))  # using a path to try and be plaform agnostic
-    if local_collection_path.parts[-2] == parent_dir and local_collection_path.parts[-1] == child_dir:
-        display.warning(f"Collection fqcn '{local_collection.fqcn}' does not appear to be in a properly named directory '{local_collection.src}'")
+    namespace_dir, collection_dir = local_collection.fqcn.split(".", 1)  # should be the name of parent dir and child dir
+    local_collection_path = pathlib.Path(to_text(local_collection.src))  # using a path to try and be plaform agnostic
+    if local_collection_path.parts[-2] != namespace_dir or local_collection_path.parts[-1] != collection_dir:
+        # display.warning(f"Collection fqcn '{local_collection.fqcn}' does not appear to be in a properly named directory '{local_collection.src}'")
+        raise AnsibleError(f"Collection fqcn '{local_collection.fqcn}' does not appear to be in a properly named directory '{local_collection.src}'")
 
     modified_content = []  # type: list[ModifiedContent]
 
@@ -1471,6 +1472,12 @@ def find_existing_collections(path_filter, artifacts_manager, namespace_filter=N
         except ValueError as val_err:
             display.warning(f'{val_err}')
             continue
+
+        req_src_path = pathlib.Path(collection_path)
+        namespace_folder = req_src_path.parts[-2]
+        collection_folder = req_src_path.parts[-1]
+        if req.namespace != namespace_folder or req.name != collection_folder:
+            display.warning(f"Collection {req.fqcn} is located in malformed directory {req_src_path}")
 
         display.vvv(
             u"Found installed collection {coll!s} at '{path!s}'".
