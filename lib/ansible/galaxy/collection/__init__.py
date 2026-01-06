@@ -1477,7 +1477,8 @@ def find_existing_collections(path_filter, artifacts_manager, namespace_filter=N
         namespace_folder = req_src_path.parts[-2]
         collection_folder = req_src_path.parts[-1]
         if req.namespace != namespace_folder or req.name != collection_folder:
-            display.warning(f"Collection {req.fqcn} is located in malformed directory {req_src_path}")
+            display.warning(f"Collection `{req.fqcn}` is located in malformed directory {req_src_path}. "
+                            f"Referring to `{req.fqcn}` in playbooks and ansible-galaxy commands will fail")
 
         display.vvv(
             u"Found installed collection {coll!s} at '{path!s}'".
