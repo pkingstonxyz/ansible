@@ -850,11 +850,9 @@ def verify_collections(
                 # NOTE: a galaxy server.
 
                 # NOTE: Add the installed-collection
+                search_paths = (pathlib.Path(path) / collection.namespace / collection.name for path in search_paths)
                 if installed_collection := installed_collections.get(collection.fqcn, None):
-                    search_paths = [
-                        pathlib.Path(to_text(installed_collection.src)),
-                        *(pathlib.Path(path) / collection.namespace / collection.name for path in search_paths),
-                        ]
+                    search_paths = chain([pathlib.Path(to_text(installed_collection.src))],  search_paths)
 
                 err_msg = f"Collection {collection.fqcn} is not installed in any of the collection paths."
                 for search_path in search_paths:
