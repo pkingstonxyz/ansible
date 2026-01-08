@@ -835,6 +835,7 @@ def verify_collections(
     api_proxy = MultiGalaxyAPIProxy(apis, artifacts_manager)
 
     with _display_progress():
+        installed_collections = {req.fqcn: req for req in find_existing_collections(search_paths, artifacts_manager)}
         for collection in collections:
             try:
                 if collection.is_concrete_artifact:
@@ -847,28 +848,25 @@ def verify_collections(
                 # NOTE: Verify local collection exists before
                 # NOTE: downloading its source artifact from
                 # NOTE: a galaxy server.
-                default_err = 'Collection %s is not installed in any of the collection paths.' % collection.fqcn
+
+                # NOTE: Add the installed-collection
+                if installed_collection := installed_collections.get(collection.fqcn, None):
+                    search_paths = [
+                        pathlib.Path(to_text(installed_collection.src)),
+                        *(pathlib.Path(path) / collection.namespace / collection.name for path in search_paths),
+                        ]
+
+                err_msg = f"Collection {collection.fqcn} is not installed in any of the collection paths."
                 for search_path in search_paths:
-                    b_search_path = to_bytes(
-                        os.path.join(
-                            search_path,
-                            collection.namespace, collection.name,
-                        ),
-                        errors='surrogate_or_strict',
-                    )
-                    if not os.path.isdir(b_search_path):
+                    if not search_path.is_dir():
                         continue
-                    if not _is_installed_collection_dir(b_search_path):
-                        default_err = (
-                            "Collection %s does not have a MANIFEST.json. "
-                            "A MANIFEST.json is expected if the collection has been built "
-                            "and installed via ansible-galaxy" % collection.fqcn
-                        )
+                    if not _is_installed_collection_dir(search_path):
+                        err_msg = (f"Collection {collection.fqcn} does not have a MANIFEST.json. A MANIFEST.json "
+                                   "is expected if the collection has been built and installed via ansible-galaxy.")
                         continue
 
-                    local_collection = Candidate.from_dir_path(
-                        b_search_path, artifacts_manager,
-                    )
+                    local_collection = Candidate.from_dir_path(to_bytes(search_path), artifacts_manager)
+
                     supplemental_signatures = [
                         get_signature_from_source(source, display)
                         for source in collection.signature_sources or []
@@ -883,7 +881,8 @@ def verify_collections(
 
                     break
                 else:
-                    raise AnsibleError(message=default_err)
+                    raise AnsibleError(message=err_msg)
+
 
                 if local_verify_only:
                     remote_collection = None
@@ -1472,13 +1471,6 @@ def find_existing_collections(path_filter, artifacts_manager, namespace_filter=N
         except ValueError as val_err:
             display.warning(f'{val_err}')
             continue
-
-        req_src_path = pathlib.Path(collection_path)
-        namespace_folder = req_src_path.parts[-2]
-        collection_folder = req_src_path.parts[-1]
-        if req.namespace != namespace_folder or req.name != collection_folder:
-            display.warning(f"Collection `{req.fqcn}` is located in malformed directory {req_src_path}. "
-                            f"Referring to `{req.fqcn}` in playbooks and ansible-galaxy commands will fail")
 
         display.vvv(
             u"Found installed collection {coll!s} at '{path!s}'".
