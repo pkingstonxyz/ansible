@@ -1663,7 +1663,7 @@ class GalaxyCLI(CLI):
 
             if (collection_path_parts := collection_src_path.parts)[-2] != collection.namespace or \
                 collection_path_parts[-1] != collection.name:
-                warnings.append(f"Collection {collection.fqcn} is in incorrectly named directory {collection_src_path}."
+                warnings.append(f"Collection {collection.fqcn} is in incorrectly named directory {collection_src_path}. "
                                 f"Expected {collection_src_path.parent.parent / collection.namespace / collection.name}")
 
             if output_format in {'yaml', 'json'}:

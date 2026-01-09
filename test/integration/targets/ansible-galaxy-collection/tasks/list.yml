@@ -15,6 +15,32 @@
     - 'prod.collection2'
     - 'prod.collection3'
 
+- name: Check that list warns on improper names
+  vars:
+    srcdir: "{{ galaxy_dir }}/dev/ansible_collections/dev/collection1"
+    destdir: "{{ galaxy_dir }}/dev/ansible_collections/dev/nottherightname"
+  block:
+    - name: move dev.collection1 somewhere
+      command: mv {{ srcdir }} {{ destdir }}
+
+    - name: List dev collections
+      command: ansible-galaxy collection list
+      register: errant_directory_list
+      environment:
+        ANSIBLE_COLLECTIONS_PATH: "{{ galaxy_dir }}/dev:{{ galaxy_dir }}/prod"
+
+    - debug: var=errant_directory_list
+
+    - assert:
+        that:
+          - errant_directory_list is success
+          - warning_text in errant_directory_list.stderr
+      vars:
+        warning_text: Collection dev.collection1 is in incorrectly named directory {{ destdir }}
+
+    - name: move dev.collection1 back
+      command: mv {{ destdir }} {{ srcdir }}
+
 - name: replace the default version of the collections
   lineinfile:
     path: "{{ galaxy_dir }}/dev/ansible_collections/dev/{{ item.name }}/galaxy.yml"
