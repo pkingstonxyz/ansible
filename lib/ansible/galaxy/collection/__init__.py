@@ -844,15 +844,14 @@ def verify_collections(
                         format(coll_type=collection.type)
                     )
 
+                # NOTE: Add the found collection as the first place to check
+                search_paths = (pathlib.Path(path) / collection.namespace / collection.name for path in search_paths)
+                if installed_collection := installed_collections.get(collection.fqcn, None):
+                    search_paths = chain([pathlib.Path(to_text(installed_collection.src))], search_paths)
+
                 # NOTE: Verify local collection exists before
                 # NOTE: downloading its source artifact from
                 # NOTE: a galaxy server.
-
-                # NOTE: Add the installed-collection
-                search_paths = (pathlib.Path(path) / collection.namespace / collection.name for path in search_paths)
-                if installed_collection := installed_collections.get(collection.fqcn, None):
-                    search_paths = chain([pathlib.Path(to_text(installed_collection.src))],  search_paths)
-
                 err_msg = f"Collection {collection.fqcn} is not installed in any of the collection paths."
                 for search_path in search_paths:
                     if not search_path.is_dir():
@@ -879,7 +878,6 @@ def verify_collections(
                     break
                 else:
                     raise AnsibleError(message=err_msg)
-
 
                 if local_verify_only:
                     remote_collection = None
