@@ -490,7 +490,7 @@
     - name: Give namespace1.name1 an incorrect namespace dir
       command: mv {{ galaxy_dir }}/ansible_collections/namespace1 {{ galaxy_dir }}/ansible_collections/{{ wrong_namespace }}
 
-    - name: Give namespace1.name1 an incorrect namespace dir
+    - name: Give namespace1.name1 an incorrect collection name dir
       command: mv {{ galaxy_dir }}/ansible_collections/{{ wrong_namespace }}/name1 {{ galaxy_dir }}/ansible_collections/{{ wrong_namespace }}/{{ wrong_name }}
 
     - name: Verify namespace1.name after moving the incorrect collection name
