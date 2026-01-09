@@ -27,9 +27,7 @@
       command: ansible-galaxy collection list
       register: errant_directory_list
       environment:
-        ANSIBLE_COLLECTIONS_PATH: "{{ galaxy_dir }}/dev:{{ galaxy_dir }}/prod"
-
-    - debug: var=errant_directory_list
+        ANSIBLE_COLLECTIONS_PATH: "{{ galaxy_dir }}/dev"
 
     - assert:
         that:
