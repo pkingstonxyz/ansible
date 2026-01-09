@@ -846,8 +846,9 @@ def verify_collections(
 
                 search_paths = (pathlib.Path(path) / collection.namespace / collection.name for path in search_paths)
 
-                # NOTE: This guarantees finding the collection if the
-                # NOTE: containing folder is improperly named
+                # NOTE: using the installed_collections list
+                # NOTE: guarantees finding the collection if
+                # NOTE: the folder is improperly named
                 if installed_collection := installed_collections.get(collection.fqcn, None):
                     search_paths = chain([pathlib.Path(to_text(installed_collection.src))], search_paths)
 
