@@ -1,0 +1,8 @@
+bugfixes:
+  - >-
+    ``ansible-galaxy collection list`` - issue a warning when a collection's namespace and name does not match its
+    filepath. (https://github.com/ansible/ansible/issues/69813)
+  - >-
+    ``ansible-galaxy collection verify`` - fail collection verification when a collection's namespace and name 
+    do not match its filepath. Verify can now find installed collections by namespace and name even if located in an 
+    incorrectly named directory. (https://github.com/ansible/ansible/issues/69813)
