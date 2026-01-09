@@ -482,6 +482,31 @@
       - verify.rc == 1
       - '"Signature verification failed for ''namespace1.name1'': no successful signatures" in verify.stdout'
 
+- name: verify ansible-galaxy is using collection names not folder names
+  vars:
+    wrong_namespace: notmynamespace
+    wrong_name: notmyname
+  block:
+    - name: Give namespace1.name1 an incorrect namespace dir
+      command: mv {{ galaxy_dir }}/ansible_collections/namespace1 {{ galaxy_dir }}/ansible_collections/{{ wrong_namespace }}
+
+    - name: Give namespace1.name1 an incorrect namespace dir
+      command: mv {{ galaxy_dir }}/ansible_collections/{{ wrong_namespace }}/name1 {{ galaxy_dir }}/ansible_collections/{{ wrong_namespace }}/{{ wrong_name }}
+
+    - name: Verify namespace1.name after moving the incorrect collection name
+      command: ansible-galaxy collection verify namespace1.name1 --offline
+      register:
+        verify
+      ignore_errors: true
+
+    - assert:
+        that:
+          - verify is failed
+          - verify.rc != 0
+          - error_message in verify.stderr
+      vars:
+        error_message: Collection 'namespace1.name1' does not appear to be in a properly named directory {{ galaxy_dir }}/ansible_collections/{{ wrong_namespace }}/{{ wrong_name }}
+
 - name: empty installed collections
   file:
     path: "{{ galaxy_dir }}/ansible_collections"

@@ -224,8 +224,7 @@ def verify_local_collection(local_collection, remote_collection, artifacts_manag
     namespace_dir, collection_dir = local_collection.fqcn.split(".", 1)  # should be the name of parent dir and child dir
     local_collection_path = pathlib.Path(to_text(local_collection.src))  # using a path to try and be plaform agnostic
     if local_collection_path.parts[-2] != namespace_dir or local_collection_path.parts[-1] != collection_dir:
-        # display.warning(f"Collection fqcn '{local_collection.fqcn}' does not appear to be in a properly named directory '{local_collection.src}'")
-        raise AnsibleError(f"Collection fqcn '{local_collection.fqcn}' does not appear to be in a properly named directory '{local_collection.src}'")
+        raise AnsibleError(f"Collection '{local_collection.fqcn}' does not appear to be in a properly named directory {to_text(local_collection.src)}")
 
     modified_content = []  # type: list[ModifiedContent]
 
