@@ -833,7 +833,7 @@ def verify_collections(
 
     api_proxy = MultiGalaxyAPIProxy(apis, artifacts_manager)
 
-    with _display_progress():
+    with (_display_progress()):
         installed_collections = {req.fqcn: req for req in find_existing_collections(search_paths, artifacts_manager)}
         for collection in collections:
             try:
@@ -844,19 +844,25 @@ def verify_collections(
                         format(coll_type=collection.type)
                     )
 
-                search_paths = (pathlib.Path(path) / collection.namespace / collection.name for path in search_paths)
+                search_path_paths: t.Iterator[pathlib.Path] = (
+                    pathlib.Path(path) / collection.namespace / collection.name
+                    for path in search_paths
+                )
 
                 # NOTE: using the installed_collections list
                 # NOTE: guarantees finding the collection if
                 # NOTE: the folder is improperly named
                 if installed_collection := installed_collections.get(collection.fqcn, None):
-                    search_paths = chain([pathlib.Path(to_text(installed_collection.src))], search_paths)
+                    search_path_paths = chain(
+                        [pathlib.Path(to_text(installed_collection.src))],
+                        search_path_paths,
+                    )
 
                 # NOTE: Verify local collection exists before
                 # NOTE: downloading its source artifact from
                 # NOTE: a galaxy server.
                 err_msg = f"Collection {collection.fqcn} is not installed in any of the collection paths."
-                for search_path in search_paths:
+                for search_path in search_path_paths:
                     if not search_path.is_dir():
                         continue
                     if not _is_installed_collection_dir(search_path):
@@ -864,7 +870,9 @@ def verify_collections(
                                    "is expected if the collection has been built and installed via ansible-galaxy.")
                         continue
 
-                    local_collection = Candidate.from_dir_path(to_bytes(search_path), artifacts_manager)
+                    local_collection = Candidate.from_dir_path(
+                        to_bytes(search_path), artifacts_manager,
+                    )
 
                     supplemental_signatures = [
                         get_signature_from_source(source, display)
