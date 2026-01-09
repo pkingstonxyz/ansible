@@ -15,7 +15,7 @@
     - 'prod.collection2'
     - 'prod.collection3'
 
-- name: Check that list warns on improper names
+- name: Check that list warns on improperly named directories
   vars:
     srcdir: "{{ galaxy_dir }}/dev/ansible_collections/dev/collection1"
     destdir: "{{ galaxy_dir }}/dev/ansible_collections/dev/nottherightname"
