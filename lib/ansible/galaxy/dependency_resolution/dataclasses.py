@@ -119,7 +119,7 @@ def _is_collection_src_dir(dir_path: bytes | str) -> bool:
     return os.path.isfile(os.path.join(b_dir_path, _GALAXY_YAML))
 
 
-def _is_installed_collection_dir(dir_path: bytes | str | pathlib.Path) -> bool:
+def _is_installed_collection_dir(dir_path: bytes | str) -> bool:
     b_dir_path = to_bytes(dir_path, errors='surrogate_or_strict')
     return os.path.isfile(os.path.join(b_dir_path, _MANIFEST_JSON))
 
