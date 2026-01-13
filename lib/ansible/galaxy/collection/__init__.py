@@ -221,11 +221,6 @@ def verify_local_collection(local_collection, remote_collection, artifacts_manag
         format(path=to_text(local_collection.src)),
     )
 
-    namespace_dir, collection_dir = local_collection.fqcn.split(".", 1)  # should be the name of parent dir and child dir
-    local_collection_path = pathlib.Path(to_text(local_collection.src))  # using a path to try and be plaform agnostic
-    if local_collection_path.parts[-2] != namespace_dir or local_collection_path.parts[-1] != collection_dir:
-        raise AnsibleError(f"Collection '{local_collection.fqcn}' does not appear to be in a properly named directory {to_text(local_collection.src)}")
-
     modified_content = []  # type: list[ModifiedContent]
 
     verify_local_only = remote_collection is None
@@ -833,8 +828,7 @@ def verify_collections(
 
     api_proxy = MultiGalaxyAPIProxy(apis, artifacts_manager)
 
-    with (_display_progress()):
-        installed_collections = {req.fqcn: req for req in find_existing_collections(search_paths, artifacts_manager)}
+    with _display_progress():
         for collection in collections:
             try:
                 if collection.is_concrete_artifact:
@@ -844,35 +838,36 @@ def verify_collections(
                         format(coll_type=collection.type)
                     )
 
-                search_path_paths: t.Iterator[pathlib.Path] = (
-                    pathlib.Path(path) / collection.namespace / collection.name
-                    for path in search_paths
-                )
-
-                # NOTE: using the installed_collections list
-                # NOTE: guarantees finding the collection if
-                # NOTE: the folder is improperly named
-                if installed_collection := installed_collections.get(collection.fqcn, None):
-                    search_path_paths = chain(
-                        [pathlib.Path(to_text(installed_collection.src))],
-                        search_path_paths,
-                    )
-
                 # NOTE: Verify local collection exists before
                 # NOTE: downloading its source artifact from
                 # NOTE: a galaxy server.
-                err_msg = f"Collection {collection.fqcn} is not installed in any of the collection paths."
-                for search_path in search_path_paths:
-                    if not search_path.is_dir():
+                default_err = 'Collection %s is not installed in any of the collection paths.' % collection.fqcn
+                for search_path in search_paths:
+                    b_search_path = to_bytes(
+                        os.path.join(
+                            search_path,
+                            collection.namespace, collection.name,
+                        ),
+                        errors='surrogate_or_strict',
+                    )
+                    if not os.path.isdir(b_search_path):
                         continue
-                    if not _is_installed_collection_dir(search_path):
-                        err_msg = (f"Collection {collection.fqcn} does not have a MANIFEST.json. A MANIFEST.json "
-                                   "is expected if the collection has been built and installed via ansible-galaxy.")
+                    if not _is_installed_collection_dir(b_search_path):
+                        default_err = (
+                            "Collection %s does not have a MANIFEST.json. "
+                            "A MANIFEST.json is expected if the collection has been built "
+                            "and installed via ansible-galaxy" % collection.fqcn
+                        )
                         continue
 
                     local_collection = Candidate.from_dir_path(
-                        to_bytes(search_path), artifacts_manager,
+                        b_search_path, artifacts_manager,
                     )
+
+                    actual_fqcn = ".".join(pathlib.Path(to_text(local_collection.src)).parts[-2:])
+                    if local_collection.fqcn != actual_fqcn:
+                        default_err = f"Collection at '{to_text(local_collection.src)}' documents invalid FQCN {local_collection.fqcn}"
+                        continue
 
                     supplemental_signatures = [
                         get_signature_from_source(source, display)
@@ -888,7 +883,7 @@ def verify_collections(
 
                     break
                 else:
-                    raise AnsibleError(message=err_msg)
+                    raise AnsibleError(message=default_err)
 
                 if local_verify_only:
                     remote_collection = None

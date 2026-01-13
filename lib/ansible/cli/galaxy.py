@@ -123,7 +123,7 @@ def _display_role(gr):
 
 def _display_collection(collection, cwidth=10, vwidth=7, min_cwidth=10, min_vwidth=7):
     display.display('{fqcn:{cwidth}} {version:{vwidth}}'.format(
-        fqcn=to_text(collection.fqcn),
+        fqcn=to_text(".".join(pathlib.Path(to_text(collection.src)).parts[-2:])),
         version=collection.ver,
         cwidth=max(cwidth, min_cwidth),  # Make sure the width isn't smaller than the header
         vwidth=max(vwidth, min_vwidth)
@@ -134,10 +134,10 @@ def _get_collection_widths(collections):
     if not is_iterable(collections):
         collections = (collections, )
 
-    fqcn_set = {to_text(c.fqcn) for c in collections}
+    path_name_set = {".".join(pathlib.Path(to_text(c.src)).parts[-2:]) for c in collections}
     version_set = {to_text(c.ver) for c in collections}
 
-    fqcn_length = len(max(fqcn_set or [''], key=len))
+    fqcn_length = len(max(path_name_set or [''], key=len))
     version_length = len(max(version_set or [''], key=len))
 
     return fqcn_length, version_length
@@ -1663,9 +1663,8 @@ class GalaxyCLI(CLI):
 
             if (collection_path_parts := collection_src_path.parts)[-2] != collection.namespace or \
                     collection_path_parts[-1] != collection.name:
-                warnings.append(f"Collection {collection.fqcn} is in incorrectly named directory {collection_src_path}. "
-                                f"Expected {collection_src_path.parent.parent / collection.namespace / collection.name}")
-
+                warnings.append(f"Collection {collection_src_path} documents invalid FQCN {collection.fqcn}.")
+                collection_found = False
             if output_format in {'yaml', 'json'}:
                 collections_in_paths.setdefault(collection_path, {})
                 collections_in_paths[collection_path][collection.fqcn] = {'version': collection.ver}
