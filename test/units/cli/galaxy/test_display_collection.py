@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import pytest
+from pathlib import Path
 
 from ansible.cli.galaxy import _display_collection
 from ansible.galaxy.dependency_resolution.dataclasses import Requirement
@@ -13,7 +14,9 @@ from ansible.galaxy.dependency_resolution.dataclasses import Requirement
 @pytest.fixture
 def collection_object():
     def _cobj(fqcn='sandwiches.ham'):
-        return Requirement(fqcn, '1.5.0', None, 'galaxy', None)
+        ns, col = fqcn.split(".", 2)
+        simulated_dir = Path('/colpath') / ns / col
+        return Requirement(fqcn, '1.5.0', simulated_dir, 'galaxy', None)
     return _cobj
 
 
