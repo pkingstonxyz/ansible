@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import pytest
+from pathlib import Path
 
 from ansible.cli.galaxy import _get_collection_widths
 from ansible.galaxy.dependency_resolution.dataclasses import Requirement
@@ -12,11 +13,11 @@ from ansible.galaxy.dependency_resolution.dataclasses import Requirement
 
 @pytest.fixture
 def collection_objects():
-    collection_ham = Requirement('sandwiches.ham', '1.5.0', None, 'galaxy', None)
+    collection_ham = Requirement('sandwiches.ham', '1.5.0', Path("/cols") / "sandwiches" / "ham", 'galaxy', None)
 
-    collection_pbj = Requirement('sandwiches.pbj', '2.5', None, 'galaxy', None)
+    collection_pbj = Requirement('sandwiches.pbj', '2.5', Path("/cols") / "sandwiches" / "pbj", 'galaxy', None)
 
-    collection_reuben = Requirement('sandwiches.reuben', '4', None, 'galaxy', None)
+    collection_reuben = Requirement('sandwiches.reuben', '4', Path("/cols") / "sandwiches" / "reuben", 'galaxy', None)
 
     return [collection_ham, collection_pbj, collection_reuben]
 
@@ -26,7 +27,7 @@ def test_get_collection_widths(collection_objects):
 
 
 def test_get_collection_widths_single_collection(mocker):
-    mocked_collection = Requirement('sandwiches.club', '3.0.0', None, 'galaxy', None)
+    mocked_collection = Requirement('sandwiches.club', '3.0.0', Path("/cols") / "sandwiches" / "club", 'galaxy', None)
     # Make this look like it is not iterable
     mocker.patch('ansible.cli.galaxy.is_iterable', return_value=False)
 
