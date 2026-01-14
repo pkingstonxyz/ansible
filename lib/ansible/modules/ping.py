@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import typing
 
 DOCUMENTATION = """
 ---
@@ -65,11 +66,14 @@ ping:
 
 from ansible.module_utils.basic import AnsibleModule
 
+from ansible.module_utils.common.parameters import A_str
+from ansible.module_utils.common.parameters import A_list
+
 
 def main():
     module = AnsibleModule(
         argument_spec=dict(
-            data=dict(type='str', default='pong'),
+            data=dict(type=typing.Union[A_str | A_list], default='pong'),
         ),
         supports_check_mode=True
     )

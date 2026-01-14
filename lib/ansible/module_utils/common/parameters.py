@@ -98,7 +98,7 @@ PASS_VARS: dict[str, t.Any] = {
 
 PASS_BOOLS = ('check_mode', 'debug', 'diff', 'keep_remote_files', 'ignore_unknown_opts', 'no_log')
 
-DEFAULT_TYPE_VALIDATORS = {
+_DEFAULT_TYPE_VALIDATORS = {
     'str': check_type_str,
     'list': check_type_list,
     'dict': check_type_dict,
@@ -113,6 +113,27 @@ DEFAULT_TYPE_VALIDATORS = {
     'bits': check_type_bits,
 }
 
+DEFAULT_TYPE_VALIDATORS = {}
+CUSTOM_TYPES = set()
+
+for strtype, validator in _DEFAULT_TYPE_VALIDATORS.items():
+    # Define the class attributes (Methods and Variables)
+    name = "A_" + strtype
+    class_attributes = {
+        "__name__": name,
+        "__module__": __name__,
+    }
+
+    # Create the class dynamically
+    new_type = type(name, (object,), class_attributes)
+
+    # Make the new class available in the global scope (
+    globals()[name] = new_type
+
+    DEFAULT_TYPE_VALIDATORS[strtype] = validator
+    DEFAULT_TYPE_VALIDATORS[new_type] = validator
+    CUSTOM_TYPES.add(new_type)
+
 
 def _get_type_validator(wanted):
     """Returns the callable used to validate a wanted type and the type name.
@@ -124,9 +145,13 @@ def _get_type_validator(wanted):
     :returns: Tuple of callable function or None, and a string that is the name
         of the wanted type.
     """
+    if isinstance(wanted, t._UnionGenericAlias):
+        checkers = [_get_type_validator(type_obj) for type_obj in wanted.__args__]
+        type_validator = lambda x: next((res for check, _ in checkers if (res := check(x))), None) #any((check(x) for check, _ in checkers))
+        return type_validator, ", or ".join((i.__name__ for i in wanted.__args__))
 
     # Use one of our builtin validators.
-    if not callable(wanted):
+    if not callable(wanted) or wanted in CUSTOM_TYPES:
         if wanted is None:
             # Default type for parameters
             wanted = 'str'
