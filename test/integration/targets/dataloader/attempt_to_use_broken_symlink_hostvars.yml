@@ -1,0 +1,8 @@
+---
+- name: Check broken hostvar symlink
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Display a message
+      debug:
+        msg: "{{ my_var }}"
