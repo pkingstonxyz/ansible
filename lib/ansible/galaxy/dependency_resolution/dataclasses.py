@@ -204,6 +204,7 @@ class _ComputedReqKindsMixin:
             cls,
             dir_path: bytes,
             art_mgr: ConcreteArtifactsManager,
+            use_dir_as_fqcn: bool = False,
     ) -> t.Self:
         """Make collection from an unspecified dir type.
 
@@ -222,7 +223,7 @@ class _ComputedReqKindsMixin:
             )
 
         try:
-            return cls.from_dir_path(dir_path, art_mgr)
+            return cls.from_dir_path(dir_path, art_mgr, use_dir_as_fqcn=use_dir_as_fqcn)
         except ValueError:
             return cls.from_dir_path_implicit(dir_path)
 
@@ -231,12 +232,12 @@ class _ComputedReqKindsMixin:
             cls,
             dir_path: bytes,
             art_mgr: ConcreteArtifactsManager,
+            use_dir_as_fqcn: bool = False,
     ) -> t.Self:
         """Make collection from an directory with metadata."""
         if dir_path.endswith(to_bytes(os.path.sep)):
             dir_path = dir_path.rstrip(to_bytes(os.path.sep))
         if not _is_collection_dir(dir_path):
-            dir_pathlib = pathlib.Path(to_text(dir_path))
             display.warning(
                 u"Collection at '{path!s}' does not have a {manifest_json!s} "
                 u'file, nor has it {galaxy_yml!s}: cannot detect version.'.
@@ -254,7 +255,12 @@ class _ComputedReqKindsMixin:
         tmp_inst_req = cls(None, None, dir_path, 'dir', None)
         req_version = art_mgr.get_direct_collection_version(tmp_inst_req)
         try:
+            dir_fqcn = ".".join(pathlib.Path(to_text(dir_path)).parts[-2:])
             req_name = art_mgr.get_direct_collection_fqcn(tmp_inst_req)
+            # if use_dir_as_fqcn:
+            #     req_name = dir_fqcn
+            # else:
+            #     req_name = art_mgr.get_direct_collection_fqcn(tmp_inst_req)
         except TypeError as err:
             # Looks like installed/source dir but isn't: doesn't have valid metadata.
             display.warning(
@@ -271,7 +277,7 @@ class _ComputedReqKindsMixin:
                 format(path=to_text(dir_path, errors='surrogate_or_strict'))
             ) from err
 
-        return cls(req_name, req_version, dir_path, 'dir', None)
+        return cls(req_name, req_version, dir_path, 'dir', None, dir_fqcn=dir_fqcn)
 
     @classmethod
     def from_dir_path_implicit(
@@ -290,7 +296,7 @@ class _ComputedReqKindsMixin:
         u_dir_path = to_text(dir_path, errors='surrogate_or_strict')
         path_list = u_dir_path.split(os.path.sep)
         req_name = '.'.join(path_list[-2:])
-        return cls(req_name, '*', dir_path, 'dir', None)
+        return cls(req_name, '*', dir_path, 'dir', None, dir_fqcn=req_name)
 
     @classmethod
     def from_string(
@@ -630,7 +636,10 @@ class Requirement(
     """An abstract requirement request."""
 
     def __new__(cls, *args: object, **kwargs: object) -> t.Self:
+        dir_fqcn = kwargs.pop('dir_fqcn', None)
         self = RequirementNamedTuple.__new__(cls, *args, **kwargs)
+        if dir_fqcn:
+            self.dir_fqcn = dir_fqcn
         return self
 
     def __init__(self, *args: object, **kwargs: object) -> None:
@@ -644,7 +653,10 @@ class Candidate(
     """A concrete collection candidate with its version resolved."""
 
     def __new__(cls, *args: object, **kwargs: object) -> t.Self:
+        dir_fqcn = kwargs.pop('dir_fqcn', None)
         self = CandidateNamedTuple.__new__(cls, *args, **kwargs)
+        if dir_fqcn:
+            self.dir_fqcn = dir_fqcn
         return self
 
     def __init__(self, *args: object, **kwargs: object) -> None:

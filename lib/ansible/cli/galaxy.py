@@ -134,10 +134,10 @@ def _get_collection_widths(collections):
     if not is_iterable(collections):
         collections = (collections, )
 
-    path_name_set = {".".join(pathlib.Path(to_text(c.src)).parts[-2:]) for c in collections}
+    fqcn_set = {to_text(c.dir_fqcn) for c in collections}
     version_set = {to_text(c.ver) for c in collections}
 
-    fqcn_length = len(max(path_name_set or [''], key=len))
+    fqcn_length = len(max(fqcn_set or [''], key=len))
     version_length = len(max(version_set or [''], key=len))
 
     return fqcn_length, version_length
@@ -1651,33 +1651,33 @@ class GalaxyCLI(CLI):
             artifacts_manager,
             namespace_filter=namespace_filter,
             collection_filter=collection_filter,
-            dedupe=False
+            dedupe=False,
+            use_dir_as_fqcn=True,
         ))
 
         seen = set()
         fqcn_width, version_width = _get_collection_widths(collections)
         for collection in sorted(collections, key=lambda c: c.src):
             collection_found = True
-            collection_src_path = pathlib.Path(to_text(collection.src))
-            collection_path = collection_src_path.parent.parent.as_posix()
+            collection_path = pathlib.Path(to_text(collection.src))
+            collection_root = collection_path.parent.parent.as_posix()
 
-            if (collection_path_parts := collection_src_path.parts)[-2] != collection.namespace or \
-                    collection_path_parts[-1] != collection.name:
-                warnings.append(f"Collection {collection_src_path} documents invalid FQCN {collection.fqcn}.")
+            if collection.fqcn != collection.dir_fqcn:
+                warnings.append(f"Collection at {collection_path} documents invalid FQCN {collection.fqcn}.")
                 collection_found = False
             if output_format in {'yaml', 'json'}:
-                collections_in_paths.setdefault(collection_path, {})
-                collections_in_paths[collection_path][collection.fqcn] = {'version': collection.ver}
+                collections_in_paths.setdefault(collection_root, {})
+                collections_in_paths[collection_root][collection.fqcn] = {'version': collection.ver}
             else:
-                if collection_path not in seen:
+                if collection_root not in seen:
                     _display_header(
-                        collection_path,
+                        collection_root,
                         'Collection',
                         'Version',
                         fqcn_width,
                         version_width
                     )
-                    seen.add(collection_path)
+                    seen.add(collection_root)
                 _display_collection(collection, fqcn_width, version_width)
 
         path_found = False

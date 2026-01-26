@@ -39,7 +39,7 @@
           - warning_text in errant_directory_list.stderr
           - dir_fqcn in errant_directory_list.stdout
       vars:
-        warning_text: Collection {{ destdir }} documents invalid FQCN {{ doc_fqcn }}
+        warning_text: Collection at {{ destdir }} documents invalid FQCN {{ doc_fqcn }}
 
     - name: List incorrect collection by metadataname
       command: ansible-galaxy collection list {{ doc_fqcn }}
@@ -67,7 +67,7 @@
           - dir_fqcn in list_dir_name.stdout
           - warning_text in list_dir_name.stderr
       vars:
-        warning_text: Collection {{ destdir }} documents invalid FQCN {{ doc_fqcn }}
+        warning_text: Collection at {{ destdir }} documents invalid FQCN {{ doc_fqcn }}
 
     - name: move {{ doc_fqcn }} back
       command: mv {{ destdir }} {{ srcdir }}
