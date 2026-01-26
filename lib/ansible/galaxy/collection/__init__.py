@@ -662,7 +662,7 @@ def install_collections(
 
     existing_collections = set()
     for path in {output_path} | read_requirement_paths:
-        for coll in find_existing_collections(path, artifacts_manager, use_dir_as_fqcn=True):
+        for coll in find_existing_collections(path, artifacts_manager):
             if getattr(coll, 'dir_fqcn', None) and coll.fqcn != coll.dir_fqcn:
                 req = Requirement(coll.dir_fqcn, coll.ver, coll.src, coll.type, None)
                 display.warning(f"Found collection at {coll.dir_fqcn} with documented name {coll.fqcn}")
@@ -1421,7 +1421,7 @@ def _normalize_collection_path(path):
     ).expanduser().absolute()
 
 
-def find_existing_collections(path_filter, artifacts_manager, namespace_filter=None, collection_filter=None, dedupe=True, use_dir_as_fqcn=False):
+def find_existing_collections(path_filter, artifacts_manager, namespace_filter=None, collection_filter=None, dedupe=True):
     """Locate all collections under a given path.
 
     :param path: Collection dirs layout search path.
@@ -1473,7 +1473,7 @@ def find_existing_collections(path_filter, artifacts_manager, namespace_filter=N
         b_collection_path = to_bytes(collection_path.as_posix())
 
         try:
-            req = Candidate.from_dir_path_as_unknown(b_collection_path, artifacts_manager, use_dir_as_fqcn=use_dir_as_fqcn)
+            req = Candidate.from_dir_path_as_unknown(b_collection_path, artifacts_manager)
         except ValueError as val_err:
             display.warning(f'{val_err}')
             continue

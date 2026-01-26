@@ -204,7 +204,6 @@ class _ComputedReqKindsMixin:
             cls,
             dir_path: bytes,
             art_mgr: ConcreteArtifactsManager,
-            use_dir_as_fqcn: bool = False,
     ) -> t.Self:
         """Make collection from an unspecified dir type.
 
@@ -223,7 +222,7 @@ class _ComputedReqKindsMixin:
             )
 
         try:
-            return cls.from_dir_path(dir_path, art_mgr, use_dir_as_fqcn=use_dir_as_fqcn)
+            return cls.from_dir_path(dir_path, art_mgr)
         except ValueError:
             return cls.from_dir_path_implicit(dir_path)
 
@@ -232,7 +231,6 @@ class _ComputedReqKindsMixin:
             cls,
             dir_path: bytes,
             art_mgr: ConcreteArtifactsManager,
-            use_dir_as_fqcn: bool = False,
     ) -> t.Self:
         """Make collection from an directory with metadata."""
         if dir_path.endswith(to_bytes(os.path.sep)):
@@ -257,10 +255,6 @@ class _ComputedReqKindsMixin:
         try:
             dir_fqcn = ".".join(pathlib.Path(to_text(dir_path)).parts[-2:])
             req_name = art_mgr.get_direct_collection_fqcn(tmp_inst_req)
-            # if use_dir_as_fqcn:
-            #     req_name = dir_fqcn
-            # else:
-            #     req_name = art_mgr.get_direct_collection_fqcn(tmp_inst_req)
         except TypeError as err:
             # Looks like installed/source dir but isn't: doesn't have valid metadata.
             display.warning(

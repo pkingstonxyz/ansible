@@ -1652,7 +1652,6 @@ class GalaxyCLI(CLI):
             namespace_filter=namespace_filter,
             collection_filter=collection_filter,
             dedupe=False,
-            use_dir_as_fqcn=True,
         ))
 
         seen = set()
