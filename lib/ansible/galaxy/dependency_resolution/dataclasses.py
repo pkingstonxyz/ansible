@@ -271,7 +271,7 @@ class _ComputedReqKindsMixin:
                 format(path=to_text(dir_path, errors='surrogate_or_strict'))
             ) from err
 
-        return cls(req_name, req_version, dir_path, 'dir', None, dir_fqcn=dir_fqcn)
+        return cls(req_name, req_version, dir_path, 'dir', None)
 
     @classmethod
     def from_dir_path_implicit(
@@ -290,7 +290,7 @@ class _ComputedReqKindsMixin:
         u_dir_path = to_text(dir_path, errors='surrogate_or_strict')
         path_list = u_dir_path.split(os.path.sep)
         req_name = '.'.join(path_list[-2:])
-        return cls(req_name, '*', dir_path, 'dir', None, dir_fqcn=req_name)
+        return cls(req_name, '*', dir_path, 'dir', None)
 
     @classmethod
     def from_string(
@@ -616,6 +616,15 @@ class _ComputedReqKindsMixin:
     def source_info(self) -> dict[str, object] | None:
         return self._source_info
 
+    @property
+    def dir_fqcn(self) -> str | None:
+        """Return an fqcn based on the directory path rather than metadata"""
+        if self.src:
+            src_path = pathlib.Path(to_text(self.src, errors='surrogate_or_strict'))
+            if len(src_path.parts) >= 2:
+                return '.'.join(src_path.parts[-2:])
+        return None
+
 
 RequirementNamedTuple = namedtuple('Requirement', ('fqcn', 'ver', 'src', 'type', 'signature_sources'))  # type: ignore[name-match]
 
@@ -630,10 +639,7 @@ class Requirement(
     """An abstract requirement request."""
 
     def __new__(cls, *args: object, **kwargs: object) -> t.Self:
-        dir_fqcn = kwargs.pop('dir_fqcn', None)
         self = RequirementNamedTuple.__new__(cls, *args, **kwargs)
-        if dir_fqcn:
-            self.dir_fqcn = dir_fqcn
         return self
 
     def __init__(self, *args: object, **kwargs: object) -> None:
@@ -647,10 +653,7 @@ class Candidate(
     """A concrete collection candidate with its version resolved."""
 
     def __new__(cls, *args: object, **kwargs: object) -> t.Self:
-        dir_fqcn = kwargs.pop('dir_fqcn', None)
         self = CandidateNamedTuple.__new__(cls, *args, **kwargs)
-        if dir_fqcn:
-            self.dir_fqcn = dir_fqcn
         return self
 
     def __init__(self, *args: object, **kwargs: object) -> None:
