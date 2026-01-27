@@ -869,8 +869,7 @@ def verify_collections(
                         b_search_path, artifacts_manager,
                     )
 
-                    actual_fqcn = ".".join(pathlib.Path(to_text(local_collection.src)).parts[-2:])
-                    if local_collection.fqcn != actual_fqcn:
+                    if local_collection.fqcn != local_collection.dir_fqcn:
                         default_err = f"Collection at '{to_text(local_collection.src)}' documents invalid FQCN {local_collection.fqcn}"
                         continue
 
