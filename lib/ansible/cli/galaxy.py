@@ -123,7 +123,7 @@ def _display_role(gr):
 
 def _display_collection(collection, cwidth=10, vwidth=7, min_cwidth=10, min_vwidth=7):
     display.display('{fqcn:{cwidth}} {version:{vwidth}}'.format(
-        fqcn=to_text(".".join(pathlib.Path(to_text(collection.src)).parts[-2:])),
+        fqcn=collection.dir_fqcn,
         version=collection.ver,
         cwidth=max(cwidth, min_cwidth),  # Make sure the width isn't smaller than the header
         vwidth=max(vwidth, min_vwidth)
