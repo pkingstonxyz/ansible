@@ -11,6 +11,7 @@ import os
 from ast import literal_eval
 from ansible.module_utils._internal import _no_six
 from ansible.module_utils.common import json as _common_json
+from ansible.module_utils.common.sentinel import OMITTED
 from ansible.module_utils.common.text.converters import to_native
 from ansible.module_utils.common.collections import is_iterable
 from ansible.module_utils.common.text.formatters import human_to_bytes
@@ -19,6 +20,9 @@ from ansible.module_utils.parsing.convert_bool import boolean
 
 def count_terms(terms, parameters):
     """Count the number of occurrences of a key in a given dictionary
+
+    For tristate parameters, OMITTED values are treated as "not specified"
+    and are not counted.
 
     :arg terms: String or iterable of values to check
     :arg parameters: Dictionary of parameters
@@ -30,7 +34,8 @@ def count_terms(terms, parameters):
     if not is_iterable(terms):
         terms = [terms]
 
-    return len(set(terms).intersection(parameters))
+    # Count only parameters that are present and not OMITTED
+    return len(set(terms).intersection({k for k, v in parameters.items() if v is not OMITTED}))
 
 
 def check_mutually_exclusive(terms, parameters, options_context=None):
@@ -142,6 +147,8 @@ def check_required_by(requirements, parameters, options_context=None):
 
     Accepts a single string or list of values for each key.
 
+    For tristate parameters, OMITTED values are treated as "not specified".
+
     :arg requirements: Dictionary of requirements
     :arg parameters: Dictionary of parameters
     :kwarg options_context: List of strings of parent key names if ``requirements`` are
@@ -155,13 +162,18 @@ def check_required_by(requirements, parameters, options_context=None):
         return result
 
     for (key, value) in requirements.items():
-        if key not in parameters or parameters[key] is None:
+        # Treat OMITTED and None the same as "not specified" for backwards compatibility
+        if key not in parameters or parameters[key] is None or parameters[key] is OMITTED:
             continue
         # Support strings (single-item lists)
         if isinstance(value, str):
             value = [value]
 
-        if missing := [required for required in value if required not in parameters or parameters[required] is None]:
+        # Check for missing required parameters, treating OMITTED and None as "not specified"
+        if missing := [required for required in value
+                       if required not in parameters
+                       or parameters[required] is None
+                       or parameters[required] is OMITTED]:
             msg = f"missing parameter(s) required by '{key}': {', '.join(missing)}"
             if options_context:
                 msg = f"{msg} found in {' -> '.join(options_context)}"
@@ -172,6 +184,8 @@ def check_required_by(requirements, parameters, options_context=None):
 def check_required_arguments(argument_spec, parameters, options_context=None):
     """Check all parameters in argument_spec and return a list of parameters
     that are required but not present in parameters.
+
+    For tristate parameters, OMITTED values are treated as "not specified".
 
     Raises :class:`TypeError` if the check fails
 
@@ -190,8 +204,10 @@ def check_required_arguments(argument_spec, parameters, options_context=None):
 
     for (k, v) in argument_spec.items():
         required = v.get('required', False)
-        if required and k not in parameters:
-            missing.append(k)
+        if required:
+            # For tristate params, treat OMITTED as "not specified"
+            if k not in parameters or parameters[k] is OMITTED:
+                missing.append(k)
 
     if missing:
         msg = "missing required arguments: %s" % ", ".join(sorted(missing))

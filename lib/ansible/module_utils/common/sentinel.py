@@ -64,3 +64,30 @@ class Sentinel:
                 print('Sentinel value')
         """
         return cls
+
+
+class _OmittedSentinel(Sentinel):
+    """
+    Sentinel value for omitted parameters in tristate parameter handling.
+
+    This sentinel is used to distinguish between three states:
+    - OMITTED: parameter was not provided (default when tristate=True)
+    - None: parameter was explicitly set to null/None
+    - value: parameter has an actual value
+
+    Usage::
+
+        from ansible.module_utils.basic import OMITTED
+
+        if module.params['my_param'] is OMITTED:
+            # Parameter was not provided
+        elif module.params['my_param'] is None:
+            # Parameter was explicitly set to null
+        else:
+            # Parameter has a value
+    """
+    def __repr__(self):
+        return '<omitted>'
+
+
+OMITTED = _OmittedSentinel

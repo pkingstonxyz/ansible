@@ -21,6 +21,7 @@ from collections.abc import (
 from itertools import chain  # pylint: disable=unused-import
 
 from ansible.module_utils.common.collections import is_iterable
+from ansible.module_utils.common.sentinel import OMITTED
 from ansible.module_utils._internal import _no_six
 from ansible.module_utils._internal._datatag import AnsibleSerializable, AnsibleTagHelper
 from ansible.module_utils.common.text.converters import to_bytes, to_native, to_text
@@ -483,18 +484,24 @@ def _set_defaults(argument_spec, parameters, set_default=True):
     no_log_values = set()
     for param, value in argument_spec.items():
 
-        # TODO: Change the default value from None to Sentinel to differentiate between
-        #       user supplied None and a default value set by this function.
-        default = value.get('default', None)
+        # For tristate parameters, use OMITTED sentinel to differentiate between
+        # user supplied None and an omitted parameter.
+        tristate = value.get('tristate', False)
+        default = value.get('default', OMITTED if tristate else None)
 
         # This prevents setting defaults on required items on the 1st run,
         # otherwise will set things without a default to None on the 2nd.
-        if param not in parameters and (default is not None or set_default):
-            # Make sure any default value for no_log fields are masked.
-            if value.get('no_log', False) and default:
-                no_log_values.add(default)
-
-            parameters[param] = default
+        if param not in parameters:
+            if tristate:
+                # For tristate params, always set to OMITTED or the specified default
+                if value.get('no_log', False) and default is not OMITTED and default is not None:
+                    no_log_values.add(default)
+                parameters[param] = default
+            elif default is not None or set_default:
+                # For non-tristate params, preserve existing behavior
+                if value.get('no_log', False) and default:
+                    no_log_values.add(default)
+                parameters[param] = default
 
     return no_log_values
 
@@ -599,6 +606,11 @@ def _validate_argument_types(argument_spec, parameters, prefix='', options_conte
             continue
 
         value = parameters[param]
+
+        # Skip OMITTED values (tristate parameters that weren't provided)
+        if value is OMITTED:
+            continue
+
         if value is None and not spec.get('required') and spec.get('default') is None:
             continue
 
@@ -647,7 +659,7 @@ def _validate_argument_values(argument_spec, parameters, options_context=None, e
             continue
 
         if isinstance(choices, (frozenset, KeysView, Sequence)) and not isinstance(choices, (bytes, str)):
-            if param in parameters:
+            if param in parameters and parameters[param] is not OMITTED:
                 # Allow one or more when type='list' param with choices
                 if isinstance(parameters[param], list):
                     diff_list = [item for item in parameters[param] if item not in choices]
@@ -725,7 +737,7 @@ def _validate_sub_spec(
                         parameters[param] = {}
                 else:
                     continue
-            elif sub_spec is None or param not in parameters or parameters[param] is None:
+            elif sub_spec is None or param not in parameters or parameters[param] is None or parameters[param] is OMITTED:
                 continue
 
             # Keep track of context for warning messages
@@ -833,7 +845,8 @@ def set_fallbacks(argument_spec, parameters):
         fallback_strategy = fallback[0]
         fallback_args = []
         fallback_kwargs = {}
-        if param not in parameters and fallback_strategy is not None:
+        # Apply fallback if param not in parameters or is OMITTED (for tristate params)
+        if (param not in parameters or parameters.get(param) is OMITTED) and fallback_strategy is not None:
             for item in fallback[1:]:
                 if isinstance(item, dict):
                     fallback_kwargs = item
