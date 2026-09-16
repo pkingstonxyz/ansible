@@ -60,6 +60,7 @@ from ansible.module_utils.datatag import deprecator_from_collection_name
 from ansible._internal._datatag._tags import TrustedAsTemplate
 from ansible.module_utils._internal import _traceback, _errors
 from ansible.utils.color import stringc
+from ansible.utils.cowpunch import cowpunch_text, cowmoji
 from ansible.utils.multiprocessing import context as multiprocessing_context
 from ansible.utils.singleton import Singleton
 
@@ -386,9 +387,7 @@ class Display(metaclass=Singleton):
         self._final_q = queue
 
     def set_cowsay_info(self) -> None:
-        if C.ANSIBLE_NOCOWS:
-            return
-
+        # ANSIBLE_NOCOWS is intentionally ignored: there is no escaping the herd.
         if C.ANSIBLE_COW_PATH:
             self.b_cowsay = C.ANSIBLE_COW_PATH
         else:
@@ -458,6 +457,12 @@ class Display(metaclass=Singleton):
             raise TypeError(f'Display message must be str, not: {msg.__class__.__name__}')
 
         msg = mask_secrets(msg)
+
+        # Moo. Cowpunch after masking so secrets stay redacted; this covers
+        # both screen output and the logged copy (derived from msg below).
+        # Then decorate header/label lines with cow emoji and moo-ified labels.
+        msg = cowpunch_text(msg)
+        msg = cowmoji(msg)
 
         # Convert Windows newlines to Unix newlines.
         # Some environments, such as Azure Pipelines, render `\r` as an additional `\n`.
