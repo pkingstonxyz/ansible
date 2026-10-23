@@ -1,10 +1,45 @@
 # file module tests for the attributes parameter
 
-- name: Test the attributes parameter
-  vars:
+- name: define file to verify chattr/lsattr with
+  set_fact:
     attributes_file: "{{ remote_tmp_dir }}/attributes.txt"
+    attributes_supported: no
     # 'd' sorts after 'A' in ASCII but before it in lsattr's output order
     test_attributes: Ad
+
+- name: create file to verify chattr/lsattr with
+  command: touch "{{ attributes_file }}"
+
+- name: add "A" attribute to file
+  command: chattr +A "{{ attributes_file }}"
+  ignore_errors: yes
+
+- name: get attributes from file
+  command: lsattr -d "{{ attributes_file }}"
+  register: attribute_A_set
+  ignore_errors: yes
+
+- name: remove "A" attribute from file
+  command: chattr -A "{{ attributes_file }}"
+  ignore_errors: yes
+
+- name: get attributes from file
+  command: lsattr -d "{{ attributes_file }}"
+  register: attribute_A_unset
+  ignore_errors: yes
+
+- name: determine if chattr/lsattr is supported
+  set_fact:
+    attributes_supported: yes
+  when:
+    - attribute_A_set is success
+    - attribute_A_set.stdout_lines is truthy
+    - "'A' in attribute_A_set.stdout_lines[0].split()[0]"
+    - attribute_A_unset is success
+    - attribute_A_unset.stdout_lines is truthy
+    - "'A' not in attribute_A_unset.stdout_lines[0].split()[0]"
+
+- name: Test the attributes parameter
   block:
     # 'A' and 'd' are the only attributes tmpfs supports
     - name: Create the file to test attributes with
@@ -83,6 +118,28 @@
       assert:
         that:
           - cleanup_result is changed
+
+    - name: explicitly set file attribute "A"
+      file: path={{ attributes_file }} attributes=A
+      register: file_attributes_result
+      ignore_errors: True
+      when: attributes_supported
+
+    - name: remove file attribute "A"
+      file: path={{ attributes_file }} attributes=-A
+      register: file_attributes_result_3
+      ignore_errors: True
+
+    - name: explicitly remove file attributes
+      file: path={{ attributes_file }} attributes=""
+      register: file_attributes_result_4
+      when: file_attributes_result_3 is changed
+
+    - name: verify that the file was not marked as changed
+      assert:
+        that:
+          - "file_attributes_result_4 is not changed"
+      when: file_attributes_result_4 is changed
 
   always:
     - name: Remove the attributes test file
