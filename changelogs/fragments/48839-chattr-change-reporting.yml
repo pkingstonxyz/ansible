@@ -1,0 +1,4 @@
+bugfixes:
+  - file - correctly report a change when setting file attributes with ``chattr``, and
+    report the before and after attributes in diff mode using a consistent ordering
+    (https://github.com/ansible/ansible/issues/48839).

@@ -960,17 +960,19 @@ class AnsibleModule(object):
 
         if existing_flags != new_flags:
             attrcmd = self.get_bin_path('chattr')
+            existing_flags_str = "".join(sorted(existing_flags))
+            new_flags_str = "".join(sorted(new_flags))
             if attrcmd:
-                attrcmd = [attrcmd, '=%s' % ''.join(new_flags), b_path]
+                attrcmd = [attrcmd, f"={new_flags_str}", b_path]
                 changed = True
 
                 if diff is not None:
                     if 'before' not in diff:
                         diff['before'] = {}
-                    diff['before']['attributes'] = existing.get('attr_flags')
+                    diff['before']['attributes'] = existing_flags_str
                     if 'after' not in diff:
                         diff['after'] = {}
-                    diff['after']['attributes'] = ''.join(new_flags)
+                    diff['after']['attributes'] = new_flags_str
 
                 if not self.check_mode:
                     try:

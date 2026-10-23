@@ -1,0 +1,91 @@
+# file module tests for the attributes parameter
+
+- name: Test the attributes parameter
+  vars:
+    attributes_file: "{{ remote_tmp_dir }}/attributes.txt"
+    # 'd' sorts after 'A' in ASCII but before it in lsattr's output order
+    test_attributes: Ad
+  block:
+    # 'A' and 'd' are the only attributes tmpfs supports
+    - name: Create the file to test attributes with
+      file:
+        path: "{{ attributes_file }}"
+        state: touch
+        attributes: "-{{ test_attributes }}"
+
+    - name: Add the test attributes
+      file:
+        path: "{{ attributes_file }}"
+        attributes: "+{{ test_attributes }}"
+      register: add_result
+      diff: true
+
+    - name: Verify adding attributes reported a change and a consistent diff
+      assert:
+        that:
+          - add_result is changed
+          # both sides use the same ordering, so they can be compared directly
+          - add_result.diff.before.attributes == add_result.diff.before.attributes | sort(case_sensitive=true) | join('')
+          - add_result.diff.after.attributes == add_result.diff.after.attributes | sort(case_sensitive=true) | join('')
+          - "'A' in add_result.diff.after.attributes"
+          - "'d' in add_result.diff.after.attributes"
+
+    - name: Add the same attributes again
+      file:
+        path: "{{ attributes_file }}"
+        attributes: "+{{ test_attributes }}"
+      register: readd_result
+
+    - name: Verify re-adding the same attributes reported no change
+      assert:
+        that:
+          - readd_result is not changed
+
+    - name: Remove one attribute in check mode
+      file:
+        path: "{{ attributes_file }}"
+        attributes: "-A"
+      register: check_mode_result
+      check_mode: true
+      diff: true
+
+    - name: Verify check mode reported the change
+      assert:
+        that:
+          - check_mode_result is changed
+          - "'A' in check_mode_result.diff.before.attributes"
+          - "'A' not in check_mode_result.diff.after.attributes"
+
+    - name: Remove one attribute
+      file:
+        path: "{{ attributes_file }}"
+        attributes: "-A"
+      register: remove_result
+      diff: true
+
+    - name: Verify removing one attribute left the others in place
+      assert:
+        that:
+          - remove_result is changed
+          - remove_result.diff.before.attributes == remove_result.diff.before.attributes | sort(case_sensitive=true) | join('')
+          - remove_result.diff.after.attributes == remove_result.diff.after.attributes | sort(case_sensitive=true) | join('')
+          - "'A' in remove_result.diff.before.attributes"
+          - "'A' not in remove_result.diff.after.attributes"
+          - "'d' in remove_result.diff.after.attributes"
+
+    - name: Remove the remaining test attributes
+      file:
+        path: "{{ attributes_file }}"
+        attributes: "-{{ test_attributes }}"
+      register: cleanup_result
+
+    - name: Verify the remaining test attributes were removed
+      assert:
+        that:
+          - cleanup_result is changed
+
+  always:
+    - name: Remove the attributes test file
+      file:
+        path: "{{ attributes_file }}"
+        state: absent
