@@ -1,0 +1,34 @@
+# A single attributes test case, driven by the loops in attributes.yml.
+#
+# item keys:
+#   name             description, also used as the task label
+#   attributes       value passed to the module
+#   changed          whether the module is expected to report a change
+#   check_mode       run the case in check mode (default false)
+#   before_contains  substrings which must appear in diff.before.attributes
+#   before_excludes  substrings which must not appear in diff.before.attributes
+#   after_contains   substrings which must appear in diff.after.attributes
+#   after_excludes   substrings which must not appear in diff.after.attributes
+
+- name: "{{ item.name }}"
+  file:
+    path: "{{ attributes_file }}"
+    attributes: "{{ item.attributes }}"
+  register: case_result
+  check_mode: "{{ item.check_mode | default(false) }}"
+  diff: true
+
+- name: "verify {{ item.name }}"
+  vars:
+    before: "{{ case_result.diff.before.attributes | default('', true) }}"
+    after: "{{ case_result.diff.after.attributes | default('', true) }}"
+  assert:
+    that:
+      - case_result.changed == item.changed
+      - item.before_contains | default([]) | reject('in', before) | list | length == 0
+      - item.before_excludes | default([]) | select('in', before) | list | length == 0
+      - item.after_contains | default([]) | reject('in', after) | list | length == 0
+      - item.after_excludes | default([]) | select('in', after) | list | length == 0
+    fail_msg: >-
+      {{ item.name }}: changed={{ case_result.changed }}
+      before={{ before | quote }} after={{ after | quote }}

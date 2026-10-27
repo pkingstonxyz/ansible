@@ -49,74 +49,38 @@
         state: touch
         attributes: "-{{ test_attributes }}"
 
-    - name: Add the test attributes
-      file:
-        path: "{{ attributes_file }}"
-        attributes: "+{{ test_attributes }}"
-      register: add_result
-      diff: true
+    - name: Run the attribute test cases
+      include_tasks: attributes_case.yml
+      loop:
+        - name: add the test attributes
+          attributes: "+{{ test_attributes }}"
+          changed: true
+          # lsattr prints 'd' immediately ahead of 'A', unlike an alphabetical sort
+          after_contains: [A, d, dA]
 
-    - name: Verify adding attributes reported a change and a consistent diff
-      assert:
-        that:
-          - add_result is changed
-          - "'A' in add_result.diff.after.attributes"
-          - "'d' in add_result.diff.after.attributes"
-          # both sides use lsattr ordering, which prints 'd' immediately ahead of 'A'
-          - "'dA' in add_result.diff.after.attributes"
+        - name: add the same attributes again
+          attributes: "+{{ test_attributes }}"
+          changed: false
 
-    - name: Add the same attributes again
-      file:
-        path: "{{ attributes_file }}"
-        attributes: "+{{ test_attributes }}"
-      register: readd_result
+        - name: remove one attribute in check mode
+          attributes: "-A"
+          check_mode: true
+          changed: true
+          before_contains: [A]
+          after_excludes: [A]
 
-    - name: Verify re-adding the same attributes reported no change
-      assert:
-        that:
-          - readd_result is not changed
+        - name: remove one attribute
+          attributes: "-A"
+          changed: true
+          before_contains: [A, dA]
+          after_contains: [d]
+          after_excludes: [A]
 
-    - name: Remove one attribute in check mode
-      file:
-        path: "{{ attributes_file }}"
-        attributes: "-A"
-      register: check_mode_result
-      check_mode: true
-      diff: true
-
-    - name: Verify check mode reported the change
-      assert:
-        that:
-          - check_mode_result is changed
-          - "'A' in check_mode_result.diff.before.attributes"
-          - "'A' not in check_mode_result.diff.after.attributes"
-
-    - name: Remove one attribute
-      file:
-        path: "{{ attributes_file }}"
-        attributes: "-A"
-      register: remove_result
-      diff: true
-
-    - name: Verify removing one attribute left the others in place
-      assert:
-        that:
-          - remove_result is changed
-          - "'A' in remove_result.diff.before.attributes"
-          - "'A' not in remove_result.diff.after.attributes"
-          - "'d' in remove_result.diff.after.attributes"
-          - "'dA' in remove_result.diff.before.attributes"
-
-    - name: Remove the remaining test attributes
-      file:
-        path: "{{ attributes_file }}"
-        attributes: "-{{ test_attributes }}"
-      register: cleanup_result
-
-    - name: Verify the remaining test attributes were removed
-      assert:
-        that:
-          - cleanup_result is changed
+        - name: remove the remaining attributes
+          attributes: "-{{ test_attributes }}"
+          changed: true
+      loop_control:
+        label: "{{ item.name }}"
 
     - name: Set an attribute outside of the module
       command: chattr +d "{{ attributes_file }}"
@@ -154,36 +118,20 @@
       command: chattr "-{{ test_attributes }}" "{{ attributes_file }}"
       ignore_errors: yes
 
-    - name: Set the test attributes explicitly
-      file:
-        path: "{{ attributes_file }}"
-        attributes: "{{ test_attributes }}"
-      register: set_exact_result
-      diff: true
-      when: set_exact_probe is success
+    - name: Run the explicit assignment test cases
+      include_tasks: attributes_case.yml
+      loop:
+        - name: set the test attributes explicitly
+          attributes: "{{ test_attributes }}"
+          changed: true
+          after_contains: [A, d]
 
-    - name: Verify setting attributes explicitly applied them
-      assert:
-        that:
-          - set_exact_result is changed
-          - "'A' in set_exact_result.diff.after.attributes"
-          - "'d' in set_exact_result.diff.after.attributes"
-      when: set_exact_probe is success
-
-    - name: Clear all attributes
-      file:
-        path: "{{ attributes_file }}"
-        attributes: ""
-      register: clear_result
-      diff: true
-      when: set_exact_probe is success
-
-    - name: Verify clearing removed the test attributes
-      assert:
-        that:
-          - clear_result is changed
-          - "'A' not in clear_result.diff.after.attributes"
-          - "'d' not in clear_result.diff.after.attributes"
+        - name: clear every attribute
+          attributes: ""
+          changed: true
+          after_excludes: [A, d]
+      loop_control:
+        label: "{{ item.name }}"
       when: set_exact_probe is success
 
   always:
