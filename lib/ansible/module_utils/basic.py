@@ -128,6 +128,7 @@ from ansible.module_utils.common.file import (
     is_executable,
     format_attributes,
     get_flags_from_attributes,
+    sort_attr_flags,
     FILE_ATTRIBUTES,
     S_IXANY,
     S_IRWU_RWG_RWO,
@@ -948,31 +949,49 @@ class AnsibleModule(object):
             return True
 
         existing = self.get_file_attributes(b_path, include_version=False)
-        existing_flags = set(existing.get('attr_flags', ''))
-        delta_flags = set(attr for attr in attributes if attr in FILE_ATTRIBUTES)
 
-        if attributes.startswith('+'):
+        attr_mod = '='
+        if attributes.startswith(('+', '-')):
+            attr_mod = attributes[0]
+            attributes = attributes[1:]
+
+        delta_flags = set(attributes)
+        unrecognized_flags = delta_flags.difference(FILE_ATTRIBUTES)
+        attrs_unknown = bool(delta_flags) and 'attr_flags' not in existing
+
+        if unrecognized_flags:
+            self.warn(
+                f'Unrecognized attributes for {to_text(b_path)!r}: {sort_attr_flags(unrecognized_flags)}.',
+                help_text='Check for typos; setting an unrecognized attribute fails, removing one has no effect.',
+            )
+
+        if attrs_unknown:
+            self.warn(
+                f'Could not read the current attributes of {to_text(b_path)!r}.',
+                help_text='The requested attributes are applied unconditionally and the reported change may be inaccurate.',
+            )
+
+        existing_flags = set(existing.get('attr_flags', ''))
+
+        if attr_mod == '+':
             new_flags = existing_flags | delta_flags
-        elif attributes.startswith('-'):
+            apply_flags = delta_flags
+        elif attr_mod == '-':
             new_flags = existing_flags - delta_flags
+            apply_flags = delta_flags if attrs_unknown else existing_flags & delta_flags
         else:
             new_flags = delta_flags.copy()
+            apply_flags = delta_flags
 
-        if existing_flags != new_flags:
+        if attrs_unknown or existing_flags != new_flags:
             attrcmd = self.get_bin_path('chattr')
-            existing_flags_str = "".join(sorted(existing_flags))
-            new_flags_str = "".join(sorted(new_flags))
             if attrcmd:
-                attrcmd = [attrcmd, f"={new_flags_str}", b_path]
+                attrcmd = [attrcmd, f"{attr_mod}{sort_attr_flags(apply_flags)}", b_path]
                 changed = True
 
                 if diff is not None:
-                    if 'before' not in diff:
-                        diff['before'] = {}
-                    diff['before']['attributes'] = existing_flags_str
-                    if 'after' not in diff:
-                        diff['after'] = {}
-                    diff['after']['attributes'] = new_flags_str
+                    diff.setdefault('before', {})['attributes'] = existing.get('attr_flags')
+                    diff.setdefault('after', {})['attributes'] = sort_attr_flags(new_flags)
 
                 if not self.check_mode:
                     try:

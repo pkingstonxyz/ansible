@@ -86,8 +86,9 @@ options:
     description:
     - The attributes the resulting filesystem object should have.
     - To get supported flags look at the man page for C(chattr) on the target system.
-    - This string should contain the attributes in the same order as the one displayed by C(lsattr).
+    - The given attributes are reordered to match the order displayed by C(lsattr).
     - The C(=) operator is assumed as default, otherwise C(+) or C(-) operators need to be included in the string.
+    - An empty string therefore removes every attribute which can be removed.
     type: str
     aliases: [ attr ]
     version_added: '2.3'

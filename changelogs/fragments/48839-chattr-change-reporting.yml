@@ -1,4 +1,26 @@
+breaking_changes:
+  - file - an empty ``attributes`` value now clears the file attributes, as the
+    documentation describes, instead of being silently ignored. Playbooks passing an
+    empty string, including by way of a filter such as ``default('')``, will now
+    remove attributes such as ``i`` and ``a`` from the target
+    (https://github.com/ansible/ansible/issues/48839).
+
+minor_changes:
+  - file - warn when the current file attributes cannot be read, since the reported
+    change is then a guess (https://github.com/ansible/ansible/issues/48839).
+  - file - warn when ``attributes`` contains a flag which is not a recognized file
+    attribute (https://github.com/ansible/ansible/issues/48839).
+  - stat - report the ``casefold``, ``dax``, ``nocompress``, ``projinherit`` and
+    ``verity`` attributes, which were previously omitted
+    (https://github.com/ansible/ansible/issues/48839).
+
 bugfixes:
-  - file - correctly report a change when setting file attributes with ``chattr``, and
-    report the before and after attributes in diff mode using a consistent ordering
+  - file - only report a change when setting file attributes with ``chattr`` if the
+    attributes actually differ, regardless of the order in which they are given
+    (https://github.com/ansible/ansible/issues/48839).
+  - file - removing an attribute which is not set no longer reports a change, and no
+    longer fails when that attribute is not a recognized one
+    (https://github.com/ansible/ansible/issues/48839).
+  - file - report the before and after attributes in diff mode using the order
+    ``lsattr`` prints them in, so that the two can be compared directly
     (https://github.com/ansible/ansible/issues/48839).

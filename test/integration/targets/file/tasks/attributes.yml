@@ -40,6 +40,7 @@
     - "'A' not in attribute_A_unset.stdout_lines[0].split()[0]"
 
 - name: Test the attributes parameter
+  when: attributes_supported
   block:
     # 'A' and 'd' are the only attributes tmpfs supports
     - name: Create the file to test attributes with
@@ -59,11 +60,10 @@
       assert:
         that:
           - add_result is changed
-          # both sides use the same ordering, so they can be compared directly
-          - add_result.diff.before.attributes == add_result.diff.before.attributes | sort(case_sensitive=true) | join('')
-          - add_result.diff.after.attributes == add_result.diff.after.attributes | sort(case_sensitive=true) | join('')
           - "'A' in add_result.diff.after.attributes"
           - "'d' in add_result.diff.after.attributes"
+          # both sides use lsattr ordering, which prints 'd' immediately ahead of 'A'
+          - "'dA' in add_result.diff.after.attributes"
 
     - name: Add the same attributes again
       file:
@@ -102,11 +102,10 @@
       assert:
         that:
           - remove_result is changed
-          - remove_result.diff.before.attributes == remove_result.diff.before.attributes | sort(case_sensitive=true) | join('')
-          - remove_result.diff.after.attributes == remove_result.diff.after.attributes | sort(case_sensitive=true) | join('')
           - "'A' in remove_result.diff.before.attributes"
           - "'A' not in remove_result.diff.after.attributes"
           - "'d' in remove_result.diff.after.attributes"
+          - "'dA' in remove_result.diff.before.attributes"
 
     - name: Remove the remaining test attributes
       file:
@@ -119,27 +118,73 @@
         that:
           - cleanup_result is changed
 
-    - name: explicitly set file attribute "A"
-      file: path={{ attributes_file }} attributes=A
-      register: file_attributes_result
-      ignore_errors: True
-      when: attributes_supported
+    - name: Set an attribute outside of the module
+      command: chattr +d "{{ attributes_file }}"
 
-    - name: remove file attribute "A"
-      file: path={{ attributes_file }} attributes=-A
-      register: file_attributes_result_3
-      ignore_errors: True
+    - name: Add a different attribute with the module
+      file:
+        path: "{{ attributes_file }}"
+        attributes: +A
+      register: preserve_result
 
-    - name: explicitly remove file attributes
-      file: path={{ attributes_file }} attributes=""
-      register: file_attributes_result_4
-      when: file_attributes_result_3 is changed
+    - name: Read the resulting attributes back from the filesystem
+      command: lsattr -d "{{ attributes_file }}"
+      register: preserve_lsattr
 
-    - name: verify that the file was not marked as changed
+    - name: Verify adding an attribute preserved the one set outside the module
       assert:
         that:
-          - "file_attributes_result_4 is not changed"
-      when: file_attributes_result_4 is changed
+          - preserve_result is changed
+          - "'A' in preserve_lsattr.stdout_lines[0].split()[0]"
+          - "'d' in preserve_lsattr.stdout_lines[0].split()[0]"
+
+    - name: Remove the attributes used for the preservation test
+      file:
+        path: "{{ attributes_file }}"
+        attributes: "-{{ test_attributes }}"
+
+    # assigning attributes explicitly clears the ones not listed, which fails on
+    # filesystems reporting flags chattr cannot set, such as 'e' on ext4
+    - name: Check whether explicit attribute assignment is supported
+      command: chattr "={{ test_attributes }}" "{{ attributes_file }}"
+      register: set_exact_probe
+      ignore_errors: yes
+
+    - name: Remove the attributes set by the probe
+      command: chattr "-{{ test_attributes }}" "{{ attributes_file }}"
+      ignore_errors: yes
+
+    - name: Set the test attributes explicitly
+      file:
+        path: "{{ attributes_file }}"
+        attributes: "{{ test_attributes }}"
+      register: set_exact_result
+      diff: true
+      when: set_exact_probe is success
+
+    - name: Verify setting attributes explicitly applied them
+      assert:
+        that:
+          - set_exact_result is changed
+          - "'A' in set_exact_result.diff.after.attributes"
+          - "'d' in set_exact_result.diff.after.attributes"
+      when: set_exact_probe is success
+
+    - name: Clear all attributes
+      file:
+        path: "{{ attributes_file }}"
+        attributes: ""
+      register: clear_result
+      diff: true
+      when: set_exact_probe is success
+
+    - name: Verify clearing removed the test attributes
+      assert:
+        that:
+          - clear_result is changed
+          - "'A' not in clear_result.diff.after.attributes"
+          - "'d' not in clear_result.diff.after.attributes"
+      when: set_exact_probe is success
 
   always:
     - name: Remove the attributes test file
