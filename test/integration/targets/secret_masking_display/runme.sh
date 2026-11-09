@@ -14,6 +14,7 @@ secrets:
   - Displayerror0053Secret
   - Displayinvoke0054Secret
   - Displayline0055Secret
+  - Displayinfo0056Secret
 '
 
 _ANSIBLE_SECRETS_INPUT_FILES=<(printf '%s' "${SEED}") \
@@ -21,8 +22,9 @@ ANSIBLE_INJECT_INVOCATION=True \
 ANSIBLE_DEPRECATION_WARNINGS=True \
 ANSIBLE_DISPLAY_TRACEBACK=always \
 ANSIBLE_LOG_PATH="${ANSIBLE_LOG}" \
-ANSIBLE_LOG_VERBOSITY=3 \
+ANSIBLE_LOG_VERBOSITY=4 \
     ansible-playbook display.yml -i ../../inventory -vvv "$@" 2>&1 | tee "${LOG}"
+# ansible_log_verbosity must be > verbosity to exercise display bypass in _verbose_log
 
 registered_secrets=(
     Displaywarn0050Secret
@@ -31,6 +33,7 @@ registered_secrets=(
     Displayerror0053Secret
     Displayinvoke0054Secret
     Displayline0055Secret
+    Displayinfo0056Secret
 )
 sink_markers=(
     "MARKERBANNER \$REDACTED\$"
@@ -39,6 +42,7 @@ sink_markers=(
     "MARKERINVOKE \$REDACTED\$"
     "MARKERERROR \$REDACTED\$"
     "MARKERLINE \$REDACTED\$"
+    "MARKERINFO \$REDACTED\$"
 )
 
 # assert_masked FILE

@@ -508,7 +508,8 @@ class Display(metaclass=Singleton):
     def _log(self, msg: str, color: str | None = None, caplevel: int | None = None):
 
         if logger and (caplevel is None or self.log_verbosity > caplevel):
-            msg2 = msg.lstrip('\n')
+            masked_msg = mask_secrets(msg)
+            stripped_msg = masked_msg.lstrip('\n')
 
             if caplevel is None or caplevel > 0:
                 lvl = logging.INFO
@@ -528,7 +529,7 @@ class Display(metaclass=Singleton):
                     raise AnsibleAssertionError('Invalid color supplied to display: %s' % color)
 
             # actually log
-            logger.log(lvl, msg2)
+            logger.log(lvl, stripped_msg)
 
     def v(self, msg: str, host: str | None = None) -> None:
         return self.verbose(msg, host=host, caplevel=0)

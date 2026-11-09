@@ -1,0 +1,2 @@
+bugfixes:
+  - display - Secrets are now masked in verbose messages written to the log file when ``log_verbosity`` exceeds the console verbosity.

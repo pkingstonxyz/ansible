@@ -23,3 +23,6 @@
         warning: MARKERWARN Displaywarn0050Secret
         deprecation: MARKERDEPR Displaydeprec0051Secret
         invocation_arg: MARKERINVOKE Displayinvoke0054Secret
+
+    - name: Get a secret in the log
+      raw: echo "MARKERINFO Displayinfo0056Secret"
