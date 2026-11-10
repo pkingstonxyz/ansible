@@ -503,12 +503,12 @@ class Display(metaclass=Singleton):
             #         raise
 
         if logger and not screen_only:
-            self._log(nocolor, color, caplevel)
+            self._log(nocolor, color, caplevel, skip_masking=True)  # msg was masked on entry to `display`
 
-    def _log(self, msg: str, color: str | None = None, caplevel: int | None = None):
+    def _log(self, msg: str, color: str | None = None, caplevel: int | None = None, skip_masking: bool = False):
 
         if logger and (caplevel is None or self.log_verbosity > caplevel):
-            masked_msg = mask_secrets(msg)
+            masked_msg = msg if skip_masking else mask_secrets(msg)
             stripped_msg = masked_msg.lstrip('\n')
 
             if caplevel is None or caplevel > 0:
