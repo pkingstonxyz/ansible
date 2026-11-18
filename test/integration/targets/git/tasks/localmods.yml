@@ -286,6 +286,75 @@
 
   always:
   - name: LOCALMODS | cleanup checkout_dir
-    file: 
+    file:
        state: absent
        path: "{{ checkout_dir }}"
+
+# A shallow fetch on a detatched head without force should not drop local commits
+- name: Check that commits aren't overwritten from a detached checkout
+  block:
+  - name: LOCALMODS | return remote to the default branch
+    shell: git checkout {{ git_default_branch }}
+    args:
+      chdir: "{{ repo_dir }}/localmods"
+
+  - name: LOCALMODS | checkout default branch so origin/HEAD is present
+    git:
+      repo: '{{ repo_dir }}/localmods'
+      dest: '{{ checkout_dir }}'
+      version: '{{ git_default_branch }}'
+
+  - name: LOCALMODS | make local commit
+    shell: |
+      echo "local" > detached
+      git add detached
+      git commit -m "local commit"
+      git rev-parse HEAD
+    args:
+      chdir: "{{ checkout_dir }}"
+    register: detached_local_commit
+
+  - name: LOCALMODS | detach HEAD, leaving the local branch in place
+    shell: git checkout --detach HEAD
+    args:
+      chdir: "{{ checkout_dir }}"
+
+  - name: LOCALMODS | update remote default branch
+    shell: |
+      echo "remote" > detached_remote
+      git add detached_remote
+      git commit -m "remote commit"
+    args:
+      chdir: "{{ repo_dir }}/localmods"
+
+  - name: LOCALMODS | shallow fetch branch from detached checkout without force (should fail)
+    git:
+      repo: '{{ repo_dir }}/localmods'
+      dest: '{{ checkout_dir }}'
+      version: '{{ git_default_branch }}'
+      depth: 1
+    register: detached_no_force
+    ignore_errors: yes
+
+  - name: LOCALMODS | assert detached fetch refused to lose local commits
+    assert:
+      that:
+        - detached_no_force is failed
+        - "'local commits will be lost' in detached_no_force.msg"
+
+  - name: LOCALMODS | read local branch after the failed fetch
+    shell: git rev-parse {{ git_default_branch }}
+    args:
+      chdir: "{{ checkout_dir }}"
+    register: detached_branch_after_fail
+
+  - name: LOCALMODS | assert local branch was not force-updated
+    assert:
+      that:
+        - detached_local_commit.stdout_lines[-1] == detached_branch_after_fail.stdout
+
+  always:
+  - name: LOCALMODS | cleanup checkout_dir
+    file:
+      state: absent
+      path: "{{ checkout_dir }}"
