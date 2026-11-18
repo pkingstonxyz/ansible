@@ -294,3 +294,86 @@
   file:
     state: absent
     path: "{{ checkout_dir }}"
+
+#
+# Bare repos skip the checkout that normally advances refs/heads, so the
+# fetch itself has to do it. The default version and an explicit branch
+# take different arms of the refspec selection, so both are covered.
+#
+
+- name: DEPTH | bare shallow clone
+  git:
+    repo: 'file://{{ repo_dir|expanduser }}/shallow'
+    dest: '{{ checkout_dir }}'
+    bare: true
+    depth: 1
+
+- name: DEPTH | commit upstream before bare fetch with default version
+  shell: echo "bare1" > a; git commit -a -m "bare1"; git rev-parse HEAD
+  args:
+    chdir: "{{ repo_dir }}/shallow"
+  register: bare_upstream_default
+
+- name: DEPTH | bare fetch with default version
+  git:
+    repo: 'file://{{ repo_dir|expanduser }}/shallow'
+    dest: '{{ checkout_dir }}'
+    bare: true
+    depth: 1
+  register: bare_fetch_default
+
+- name: DEPTH | read bare repo HEAD after default version fetch
+  command: git rev-parse HEAD
+  args:
+    chdir: "{{ checkout_dir }}"
+  register: bare_head_default
+
+- name: DEPTH | assert bare fetch with default version advanced the branch
+  assert:
+    that:
+      - bare_fetch_default is changed
+      - bare_head_default.stdout == bare_upstream_default.stdout_lines[-1]
+
+- name: DEPTH | commit upstream before bare fetch with explicit branch
+  shell: echo "bare2" > a; git commit -a -m "bare2"; git rev-parse HEAD
+  args:
+    chdir: "{{ repo_dir }}/shallow"
+  register: bare_upstream_branch
+
+- name: DEPTH | bare fetch with explicit branch
+  git:
+    repo: 'file://{{ repo_dir|expanduser }}/shallow'
+    dest: '{{ checkout_dir }}'
+    bare: true
+    depth: 1
+    version: "{{ git_default_branch }}"
+  register: bare_fetch_branch
+
+- name: DEPTH | read bare repo HEAD after explicit branch fetch
+  command: git rev-parse HEAD
+  args:
+    chdir: "{{ checkout_dir }}"
+  register: bare_head_branch
+
+- name: DEPTH | assert bare fetch with explicit branch advanced the branch
+  assert:
+    that:
+      - bare_fetch_branch is changed
+      - bare_head_branch.stdout == bare_upstream_branch.stdout_lines[-1]
+
+- name: DEPTH | check bare repo is still shallow
+  stat:
+    path: "{{ checkout_dir }}/shallow"
+  register: bare_is_shallow
+  when: git_version.stdout is version(git_version_supporting_depth, '>=')
+
+- name: DEPTH | assert bare repo is still shallow
+  assert:
+    that:
+      - bare_is_shallow.stat.exists
+  when: git_version.stdout is version(git_version_supporting_depth, '>=')
+
+- name: DEPTH | clear checkout_dir
+  file:
+    state: absent
+    path: "{{ checkout_dir }}"

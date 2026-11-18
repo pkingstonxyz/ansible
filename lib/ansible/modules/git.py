@@ -930,10 +930,17 @@ def fetch(git_path, module, repo, dest, version, remote, depth, bare, refspec, g
         if refspec:
             refspecs.append(refspec)
         elif version == 'HEAD':
-            refspecs.append(get_head_branch(git_path, module, dest, remote))
+            head_branch = get_head_branch(git_path, module, dest, remote, bare)
+            if bare:
+                # no working tree to check out, so nothing else will move the branch
+                refspecs.append('+refs/heads/%s:refs/heads/%s' % (head_branch, head_branch))
+            else:
+                refspecs.append(head_branch)
         elif is_remote_branch(git_path, module, dest, repo, version):
-            if is_not_a_branch(git_path, module, dest) or get_head_branch(git_path, module, dest, remote) != version:
-                # this workaround is only needed for older git versions
+            if bare or is_not_a_branch(git_path, module, dest) or get_head_branch(git_path, module, dest, remote) != version:
+                # when bare, no working tree to check out, so nothing else will
+                # move the branch; otherwise this workaround is only needed for
+                # older git versions
                 # 1.8.3 is broken, 1.9.x works
                 # ensure that remote branch is available as both local and remote ref
                 refspecs.append('+refs/heads/%s:refs/heads/%s' % (version, version))
